@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Atmel Studio Solution File, Format Version 11.00
+Project("{54F91283-7BC4-4236-8FF9-10F437C3AD48}") = "two_rotations", "two_rotations.cproj", "{C2BD4D90-96C1-4415-A4E9-BEE4592A9BAF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|AVR = Debug|AVR
+		Release|AVR = Release|AVR
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C2BD4D90-96C1-4415-A4E9-BEE4592A9BAF}.Debug|AVR.ActiveCfg = Debug|AVR
+		{C2BD4D90-96C1-4415-A4E9-BEE4592A9BAF}.Debug|AVR.Build.0 = Debug|AVR
+		{C2BD4D90-96C1-4415-A4E9-BEE4592A9BAF}.Release|AVR.ActiveCfg = Release|AVR
+		{C2BD4D90-96C1-4415-A4E9-BEE4592A9BAF}.Release|AVR.Build.0 = Release|AVR
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
