@@ -16,3 +16,6 @@ Debug/
 *.exe
 *.out
 *.app
+
+# AtmelStudio generated
+TcfTransactionLog.csv
