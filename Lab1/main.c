@@ -52,33 +52,47 @@ int main()
     */
     
     //Compare Output mode to toggle OC0A: COM0A: 0b01
-    TCCR0A &= ~(1<<COM0A1);
-    TCCR0A |=  (1<<COM0A0);
-    
     //Waveform generation mode for CTC (Clear Timer on Compare Match mode): WGM = 0b010
-    TCCR0A &= ~(1<<WGM02);
-    TCCR0A |=  (1<<WGM01);
-    TCCR0B &= ~(1<<WGM00);
+    //Prescalor of 256: CS = 0b100
+    int TCCR0A_val = (0<<COM0A1) |
+                     (1<<COM0A0) |
+                     (0<<COM0B1) |
+                     (0<<COM0B0) |
+                     (1<<WGM01) |
+                     (0<<WGM00);
+
+    int TCCR0B_val = (0<<FOC0A) |
+                     (0<<FOC0B) |
+                     (0<<WGM02) |
+                     (1<<CS02) |
+                     (0<<CS01) |
+                     (0<<CS00);
+    
+    TCCR0A =  TCCR0A_val;
+    TCCR0B =  TCCR0B_val;
     
     // Timer period of 78 (8-bit register)
     OCR0A = 78-1;
     
-    //Prescalor of 256: CS = 0b001
-    TCCR0B &= ~(1<<CS02);
-    TCCR0B &= ~(1<<CS01);
-    TCCR0B |=  (1<<CS00);
-    
     // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
-    TIMSK0 &= ~(1<<OCIE0B);
-    TIMSK0 |=  (1<<OCIE0A);
-    TIMSK0 &= ~(1<<TOIE0);
+
+    int TIMSK0_val = (0<<OCIE0B) |
+                     (1<<OCIE0A) |
+                     (0<<TOIE0);
+    
+    TIMSK0 = TIMSK0_val;
+    
+    clear();
     
     //Global interrupt enable
     sei();
 
     int red_LED_value = 0;
-	while( 1 )
-	{
+    int timer_dbc = 0;
+    while( 1 )
+    {
+        lcd_goto_xy(0, 0);
+        print_long(TCNT0);
         if ( release == 1 )
         {
             //Toggle red
@@ -91,11 +105,16 @@ int main()
 
 ISR(TIMER0_COMPA_vect)
 {
+    char cSREG;
+    
+    cSREG = SREG;
+    
     ms_tick++;
     if ( ms_tick == 1000 )
     {
         ms_tick = 0;
         release = 1;
-    }        
-        
+    }
+    
+    SREG = cSREG;
 }
