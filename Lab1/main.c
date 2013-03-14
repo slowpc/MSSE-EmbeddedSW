@@ -58,15 +58,15 @@ int main()
 
     // Set up timers
     /*
-    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescalor ticks) * (1 interrput / timer_period counts)
+    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescaler ticks) * (1 interrput / timer_period counts)
     **
     ** CPU_freq is 20MHz.
-    ** We want the frequency of the interrupt to be 1 ms (1000Hz) and need to find values of prescalor and timer_period (TOP, aka OCRnA)
+    ** We want the frequency of the interrupt to be 1 ms (1000Hz) and need to find values of prescaler and timer_period (TOP, aka OCRnA)
     **
-    ** 1000 = (20E6 / 1) * (1 / prescalor) * (1 / timer_period)
-    ** prescalor = 20E6 / (1000 * timer_period)
+    ** 1000 = (20E6 / 1) * (1 / prescaler) * (1 / timer_period)
+    ** prescaler = 20E6 / (1000 * timer_period)
     **
-    ** prescalor = 256
+    ** prescaler = 256
     ** timer_period = 78
     **
     ** freq_interrupt [actual] = 20M / 256 / 78 = 1001.60Hz
@@ -74,7 +74,7 @@ int main()
 
     //Compare Output mode to toggle for OC0A
     //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
-    //Prescalor of 256
+    //Prescaler of 256
     timer_1284p_set_COM( TIMER_1284P_0, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
     timer_1284p_set_WGM( TIMER_1284P_0, TIMER_1284P_WGM_CTC );
     timer_1284p_set_CS( TIMER_1284P_0, TIMER_1284P_CS_PRESCALE_DIV256);
@@ -94,15 +94,15 @@ int main()
 
 
     /*
-    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescalor ticks) * (1 interrput / timer_period counts)
+    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescaler ticks) * (1 interrput / timer_period counts)
     **
     ** CPU_freq is 20MHz.
-    ** We want the frequency of the interrupt to be 100 ms (10Hz) and need to find values of prescalor and timer_period (TOP, aka OCRnA)
+    ** We want the frequency of the interrupt to be 100 ms (10Hz) and need to find values of prescaler and timer_period (TOP, aka OCRnA)
     **
-    ** 10 = (20E6 / 1) * (1 / prescalor) * (1 / timer_period)
-    ** prescalor = 20E6 / (10 * timer_period)
+    ** 10 = (20E6 / 1) * (1 / prescaler) * (1 / timer_period)
+    ** prescaler = 20E6 / (10 * timer_period)
     **
-    ** prescalor = 64
+    ** prescaler = 64
     ** timer_period = 31250
     **
     ** freq_interrupt [actual] = 20M / 256 / 7812 = 10.00064Hz
@@ -110,7 +110,7 @@ int main()
 
     //Compare Output mode to toggle for OC0A
     //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
-    //Prescalor of 256
+    //Prescaler of 256
     timer_1284p_set_COM( TIMER_1284P_3, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
     timer_1284p_set_WGM( TIMER_1284P_3, TIMER_1284P_WGM_CTC );
     timer_1284p_set_CS( TIMER_1284P_3, TIMER_1284P_CS_PRESCALE_DIV64);
