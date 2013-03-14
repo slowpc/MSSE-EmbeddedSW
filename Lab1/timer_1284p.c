@@ -43,8 +43,11 @@ void timer_1284p_set_COM(TIMER_1284P_E timer, TIMER_1284P_AB_E ab, TIMER_1284P_C
             TCCR0A |= reg_val;
             break;
         case TIMER_1284P_1:
+            break;
         case TIMER_1284P_2:
+            break;
         case TIMER_1284P_3:
+            break;
         default:
             break;
     }
@@ -62,16 +65,21 @@ void timer_1284p_set_WGM(TIMER_1284P_E timer, TIMER_1284P_WGM_E wgm)
             switch ( wgm )
             {
                 case TIMER_1284P_WGM_NORMAL:
+                    reg_val_a = (0<<WGM00) | (0<<WGM01);
+                    reg_val_b = (0<<WGM02);
+                    break;
                 case TIMER_1284P_WGM_CTC:
+                    reg_val_a = (0<<WGM00) | (1<<WGM01);
+                    reg_val_b = (0<<WGM02);
+                    break;
                 default:
+                    reg_val_a = 0;
+                    reg_val_b = 0;
                     break;
             }
 
             mask_a = (1<<WGM00) | (1<<WGM01);
             mask_b = (1<<WGM02);
-
-            reg_val_a = ( wgm & 0x3 ) << WGM00;
-            reg_val_b = ( ( wgm & 0x4 ) >> 2) << WGM02;
 
             TCCR0A &= ~mask_a;
             TCCR0A |= reg_val_a;
@@ -79,8 +87,11 @@ void timer_1284p_set_WGM(TIMER_1284P_E timer, TIMER_1284P_WGM_E wgm)
             TCCR0B |= reg_val_b;
             break;
         case TIMER_1284P_1:
+            break;
         case TIMER_1284P_2:
+            break;
         case TIMER_1284P_3:
+            break;
         default:
             break;
     }
@@ -101,8 +112,11 @@ void timer_1284p_set_CS(TIMER_1284P_E timer, TIMER_1284P_CS_E cs)
             TCCR0B |= reg_val;
             break;
         case TIMER_1284P_1:
+            break;
         case TIMER_1284P_2:
+            break;
         case TIMER_1284P_3:
+            break;
         default:
             break;
     }
@@ -125,8 +139,11 @@ void timer_1284p_set_OCR(TIMER_1284P_E timer, TIMER_1284P_AB_E ab, int duration_
                     break;
             }
         case TIMER_1284P_1:
+            break;
         case TIMER_1284P_2:
+            break;
         case TIMER_1284P_3:
+            break;
         default:
             break;
     }
@@ -140,10 +157,13 @@ void timer_1284p_set_IE(TIMER_1284P_E timer, TIMER_1284P_INT_E interrupt)
     {
         case TIMER_1284P_IE_B:
             reg_value = (1<<OCIE0B);
+            break;
         case TIMER_1284P_IE_A:
             reg_value = (1<<OCIE0A);
+            break;
         case TIMER_1284P_IE_OVERFLOW:
             reg_value = (1<<TOIE0);
+            break;
         default:
             reg_value = 0;
             break;
@@ -155,8 +175,11 @@ void timer_1284p_set_IE(TIMER_1284P_E timer, TIMER_1284P_INT_E interrupt)
             TIMSK0 |= reg_value;
             break;
         case TIMER_1284P_1:
+            break;
         case TIMER_1284P_2:
+            break;
         case TIMER_1284P_3:
+            break;
         default:
             break;
     }
@@ -170,10 +193,13 @@ void timer_1284p_clr_IE(TIMER_1284P_E timer, TIMER_1284P_INT_E interrupt)
     {
         case TIMER_1284P_IE_B:
             reg_value = (1<<OCIE0B);
+            break;
         case TIMER_1284P_IE_A:
             reg_value = (1<<OCIE0A);
+            break;
         case TIMER_1284P_IE_OVERFLOW:
             reg_value = (1<<TOIE0);
+            break;
         default:
             reg_value = 0;
             break;
@@ -185,7 +211,9 @@ void timer_1284p_clr_IE(TIMER_1284P_E timer, TIMER_1284P_INT_E interrupt)
             TIMSK0 &= ~reg_value;
             break;
         case TIMER_1284P_1:
+            break;
         case TIMER_1284P_2:
+            break;
         case TIMER_1284P_3:
             default:
             break;
@@ -196,15 +224,20 @@ int timer_1284p_get_counter(TIMER_1284P_E timer)
 {
     int ret_value;
 
+    ret_value = 0;
+
     switch( timer )
     {
     case TIMER_1284P_0:
         ret_value = TCNT0;
+        break;
     case TIMER_1284P_1:
+        break;
     case TIMER_1284P_2:
+        break;
     case TIMER_1284P_3:
+        break;
     default:
-        ret_value = 0;
         break;
     }
 
