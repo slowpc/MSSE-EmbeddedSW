@@ -47,6 +47,8 @@ void timer_1284p_set_COM(TIMER_1284P_E timer, TIMER_1284P_AB_E ab, TIMER_1284P_C
         case TIMER_1284P_2:
             break;
         case TIMER_1284P_3:
+            TCCR3A &= mask;
+            TCCR3A |= reg_val;
             break;
         default:
             break;
@@ -91,6 +93,29 @@ void timer_1284p_set_WGM(TIMER_1284P_E timer, TIMER_1284P_WGM_E wgm)
         case TIMER_1284P_2:
             break;
         case TIMER_1284P_3:
+            switch ( wgm )
+            {
+                case TIMER_1284P_WGM_NORMAL:
+                    reg_val_a = (0<<WGM33) | (0<<WGM31);
+                    reg_val_b = (0<<WGM32) | (0<<WGM33);
+                    break;
+                case TIMER_1284P_WGM_CTC:
+                    reg_val_a = (0<<WGM30) | (0<<WGM31);
+                    reg_val_b = (1<<WGM32) | (0<<WGM33);
+                    break;
+                default:
+                    reg_val_a = 0;
+                    reg_val_b = 0;
+                    break;
+            }
+
+            mask_a = (1<<WGM30) | (1<<WGM31);
+            mask_b = (1<<WGM32) | (1<<WGM33);
+
+            TCCR3A &= ~mask_a;
+            TCCR3A |= reg_val_a;
+            TCCR3B &= ~mask_b;
+            TCCR3B |= reg_val_b;
             break;
         default:
             break;
@@ -116,6 +141,8 @@ void timer_1284p_set_CS(TIMER_1284P_E timer, TIMER_1284P_CS_E cs)
         case TIMER_1284P_2:
             break;
         case TIMER_1284P_3:
+            TCCR3B &= ~mask;
+            TCCR3B |= reg_val;
             break;
         default:
             break;
@@ -138,11 +165,23 @@ void timer_1284p_set_OCR(TIMER_1284P_E timer, TIMER_1284P_AB_E ab, int duration_
                 default:
                     break;
             }
+            break;
         case TIMER_1284P_1:
             break;
         case TIMER_1284P_2:
             break;
         case TIMER_1284P_3:
+            switch ( ab )
+            {
+                case TIMER_1284P_A:
+                    OCR3A = duration_counts;
+                    break;
+                case TIMER_1284P_B:
+                    OCR3B = duration_counts;
+                    break;
+                default:
+                    break;
+            }
             break;
         default:
             break;
@@ -179,6 +218,7 @@ void timer_1284p_set_IE(TIMER_1284P_E timer, TIMER_1284P_INT_E interrupt)
         case TIMER_1284P_2:
             break;
         case TIMER_1284P_3:
+            TIMSK3 |= reg_value;
             break;
         default:
             break;
@@ -215,6 +255,7 @@ void timer_1284p_clr_IE(TIMER_1284P_E timer, TIMER_1284P_INT_E interrupt)
         case TIMER_1284P_2:
             break;
         case TIMER_1284P_3:
+            TIMSK3 &= ~reg_value;
             default:
             break;
     }
@@ -236,6 +277,7 @@ int timer_1284p_get_counter(TIMER_1284P_E timer)
     case TIMER_1284P_2:
         break;
     case TIMER_1284P_3:
+        ret_value = TCNT3;
         break;
     default:
         break;
