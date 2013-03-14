@@ -24,13 +24,14 @@
 #include <pololu/orangutan.h>
 #include <avr/io.h>         //gives us names for registers
 #include <avr/interrupt.h>
+#include "timer_1284p.h"
 
 static int ms_tick;
 static int release;
 
 int main()
 {
-
+    cli();
     ms_tick = 0;
     release = 0;
 
@@ -50,40 +51,24 @@ int main()
     ** prescalor = 256
     ** timer_period = 78
     */
-    
-    //Compare Output mode to toggle OC0A: COM0A: 0b01
-    //Waveform generation mode for CTC (Clear Timer on Compare Match mode): WGM = 0b010
-    //Prescalor of 256: CS = 0b100
-    int TCCR0A_val = (0<<COM0A1) |
-                     (1<<COM0A0) |
-                     (0<<COM0B1) |
-                     (0<<COM0B0) |
-                     (1<<WGM01) |
-                     (0<<WGM00);
 
-    int TCCR0B_val = (0<<FOC0A) |
-                     (0<<FOC0B) |
-                     (0<<WGM02) |
-                     (1<<CS02) |
-                     (0<<CS01) |
-                     (0<<CS00);
-    
-    TCCR0A =  TCCR0A_val;
-    TCCR0B =  TCCR0B_val;
-    
+    //Compare Output mode to toggle for OC0A
+    //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
+    //Prescalor of 256
+    timer_1284p_set_COM( TIMER_1284P_0, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
+    timer_1284p_set_WGM( TIMER_1284P_0, TIMER_1284P_WGM_CTC );
+    timer_1284p_set_CS( TIMER_1284P_0, TIMER_1284P_CS_PRESCALE_DIV256);
+
     // Timer period of 78 (8-bit register)
-    OCR0A = 78-1;
-    
-    // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
+    timer_1284p_set_OCR( TIMER_1284P_0, TIMER_1284P_A, 78 - 1 );
 
-    int TIMSK0_val = (0<<OCIE0B) |
-                     (1<<OCIE0A) |
-                     (0<<TOIE0);
-    
-    TIMSK0 = TIMSK0_val;
-    
+    // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
+    timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_B );
+    timer_1284p_set_IE( TIMER_1284P_0, TIMER_1284P_IE_A );
+    timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_OVERFLOW );
+
     clear();
-    
+
     //Global interrupt enable
     sei();
 
