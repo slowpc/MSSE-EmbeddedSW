@@ -26,12 +26,12 @@
 #include <avr/interrupt.h>
 #include "timer_1284p.h"
 
-#define FREQ 20000000
+#define CPU_FREQ 20000000
 #define TICKS_PER_CYCLE 4
 #define MS_PER_S 1000
 #define NUM_MS_TO_DELAY 10
 // ( 20M CPU cycles / 1 second ) * ( 1 second / 1000 milliseconds ) * ( 1 loop / 4 CPU cycles) * ( 10 milliseconds )
-#define NUM_TICKS (FREQ/MS_PER_S/TICKS_PER_CYCLE*NUM_MS_TO_DELAY)
+#define NUM_TICKS (CPU_FREQ/MS_PER_S/TICKS_PER_CYCLE*NUM_MS_TO_DELAY)
 #define DELAY_10MS for(unsigned int ___iii=0; ___iii<NUM_TICKS;___iii++){;}
 
 static int ms_tick;
@@ -39,6 +39,7 @@ static int release;
 
 void toggle_red_led( void );
 void toggle_green_led( void );
+void toggle_yellow_led( void );
 
 int main()
 {
@@ -46,13 +47,15 @@ int main()
     int red_LED_value;
     int green_LED_value;
 
+    // Clear interrupts right away
     cli();
+
     ms_tick = 0;
     release = 0;
 
     // Set up IO
     
-    
+
     // Set up timers
     /*
     ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescalor ticks) * (1 interrput / timer_period counts)
@@ -65,6 +68,8 @@ int main()
     **
     ** prescalor = 256
     ** timer_period = 78
+    **
+    ** freq_interrupt [actual] = 20M / 256 / 78 = 1001.60Hz
     */
 
     //Compare Output mode to toggle for OC0A
@@ -74,13 +79,53 @@ int main()
     timer_1284p_set_WGM( TIMER_1284P_0, TIMER_1284P_WGM_CTC );
     timer_1284p_set_CS( TIMER_1284P_0, TIMER_1284P_CS_PRESCALE_DIV256);
 
+#define TIMER0_HZ 1000
+#define TIMER0_PRESCALER 256
+#define TIMER0_PERIOD (CPU_FREQ/TIMER0_HZ/TIMER0_PRESCALER)
     // Timer period of 78 (8-bit register)
-    timer_1284p_set_OCR( TIMER_1284P_0, TIMER_1284P_A, 78 - 1 );
+    timer_1284p_set_OCR( TIMER_1284P_0, TIMER_1284P_A, TIMER0_PERIOD - 1 );
 
     // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
     timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_B );
     timer_1284p_set_IE( TIMER_1284P_0, TIMER_1284P_IE_A );
     timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_OVERFLOW );
+
+
+
+
+    /*
+    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescalor ticks) * (1 interrput / timer_period counts)
+    **
+    ** CPU_freq is 20MHz.
+    ** We want the frequency of the interrupt to be 100 ms (10Hz) and need to find values of prescalor and timer_period (TOP, aka OCRnA)
+    **
+    ** 10 = (20E6 / 1) * (1 / prescalor) * (1 / timer_period)
+    ** prescalor = 20E6 / (10 * timer_period)
+    **
+    ** prescalor = 64
+    ** timer_period = 31250
+    **
+    ** freq_interrupt [actual] = 20M / 256 / 7812 = 10.00064Hz
+    */
+
+    //Compare Output mode to toggle for OC0A
+    //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
+    //Prescalor of 256
+    timer_1284p_set_COM( TIMER_1284P_3, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
+    timer_1284p_set_WGM( TIMER_1284P_3, TIMER_1284P_WGM_CTC );
+    timer_1284p_set_CS( TIMER_1284P_3, TIMER_1284P_CS_PRESCALE_DIV64);
+
+#define TIMER3_HZ 10
+#define TIMER3_PRESCALER 64
+#define TIMER3_PERIOD (CPU_FREQ/TIMER3_HZ/TIMER3_PRESCALER)
+    // Timer period of 78 (8-bit register)
+    timer_1284p_set_OCR( TIMER_1284P_3, TIMER_1284P_A, TIMER3_PERIOD - 1 );
+
+    // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
+    timer_1284p_clr_IE( TIMER_1284P_3, TIMER_1284P_IE_B );
+    timer_1284p_set_IE( TIMER_1284P_3, TIMER_1284P_IE_A );
+    timer_1284p_clr_IE( TIMER_1284P_3, TIMER_1284P_IE_OVERFLOW );
+
 
     clear();
 
@@ -130,6 +175,23 @@ ISR(TIMER0_COMPA_vect)
     SREG = cSREG;
 }
 
+ISR(TIMER3_COMPA_vect)
+{
+    char cSREG;
+    static int task3_tick = 0;
+
+    cSREG = SREG;
+
+    task3_tick++;
+    if ( task3_tick == 1 )
+    {
+        toggle_yellow_led();
+        task3_tick = 0;
+    }
+
+    SREG = cSREG;
+}
+
 
 void toggle_red_led( void )
 {
@@ -143,4 +205,11 @@ void toggle_green_led( void )
     static int green_LED_value = 1;
     green_led(green_LED_value);
     green_LED_value ^= 0x1;
+}
+
+void toggle_yellow_led( void )
+{
+    static int yellow_LED_value = 1;
+    set_digital_output(IO_A0, yellow_LED_value);  // PC1 is low, so drive PD1 low.
+    yellow_LED_value ^= 0x1;
 }
