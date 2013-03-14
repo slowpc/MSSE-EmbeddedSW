@@ -37,6 +37,9 @@
 static int ms_tick;
 static int release;
 
+void toggle_red_led( void );
+void toggle_green_led( void );
+
 int main()
 {
     int timer_dbc;
@@ -100,14 +103,12 @@ int main()
         {
             DELAY_10MS;
         }
-        green_led(green_LED_value);
-        green_LED_value ^= 0x1;
+        toggle_green_led();
         
         if ( release == 1 )
         {
             //Toggle red
-            red_led(red_LED_value);
-            red_LED_value ^= 0x1;
+            toggle_red_led();
             release = 0;
         }
 	}
@@ -127,4 +128,19 @@ ISR(TIMER0_COMPA_vect)
     }
     
     SREG = cSREG;
+}
+
+
+void toggle_red_led( void )
+{
+    static int red_LED_value = 1;
+    red_led(red_LED_value);
+    red_LED_value ^= 0x1;
+}
+
+void toggle_green_led( void )
+{
+    static int green_LED_value = 1;
+    green_led(green_LED_value);
+    green_LED_value ^= 0x1;
 }
