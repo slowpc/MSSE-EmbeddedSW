@@ -26,6 +26,14 @@
 #include <avr/interrupt.h>
 #include "timer_1284p.h"
 
+#define FREQ 20000000
+#define TICKS_PER_CYCLE 4
+#define MS_PER_S 1000
+#define NUM_MS_TO_DELAY 10
+// ( 20M CPU cycles / 1 second ) * ( 1 second / 1000 milliseconds ) * ( 1 loop / 4 CPU cycles) * ( 10 milliseconds )
+#define NUM_TICKS (FREQ/MS_PER_S/TICKS_PER_CYCLE*NUM_MS_TO_DELAY)
+#define DELAY_10MS for(unsigned int ___iii=0; ___iii<NUM_TICKS;___iii++){;}
+
 static int ms_tick;
 static int release;
 
@@ -33,6 +41,7 @@ int main()
 {
     int timer_dbc;
     int red_LED_value;
+    int green_LED_value;
 
     cli();
     ms_tick = 0;
@@ -76,6 +85,8 @@ int main()
     timer_dbc = 0;
     red_LED_value = 1;
     red_led(red_LED_value);
+    green_LED_value = 1;
+    green_led(green_LED_value);
 
     //Global interrupt enable
     sei();
@@ -83,7 +94,15 @@ int main()
     while( 1 )
     {
         lcd_goto_xy(0, 0);
-        print_long(TCNT0);
+        //print_long(TCNT0);
+        
+        for ( int i = 0; i < 50; i++ )
+        {
+            DELAY_10MS;
+        }
+        green_led(green_LED_value);
+        green_LED_value ^= 0x1;
+        
         if ( release == 1 )
         {
             //Toggle red
@@ -101,7 +120,7 @@ ISR(TIMER0_COMPA_vect)
     cSREG = SREG;
     
     ms_tick++;
-    if ( ms_tick == 1000 )
+    if ( ms_tick == 500 )
     {
         ms_tick = 0;
         release = 1;
