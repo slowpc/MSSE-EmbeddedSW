@@ -31,6 +31,9 @@ static int release;
 
 int main()
 {
+    int timer_dbc;
+    int red_LED_value;
+
     cli();
     ms_tick = 0;
     release = 0;
@@ -69,11 +72,14 @@ int main()
 
     clear();
 
+    // Set locals before enabling interrupts
+    timer_dbc = 0;
+    red_LED_value = 1;
+    red_led(red_LED_value);
+
     //Global interrupt enable
     sei();
 
-    int red_LED_value = 0;
-    int timer_dbc = 0;
     while( 1 )
     {
         lcd_goto_xy(0, 0);
