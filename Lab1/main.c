@@ -34,6 +34,8 @@
 #define NUM_TICKS (CPU_FREQ/MS_PER_S/TICKS_PER_CYCLE*NUM_MS_TO_DELAY)
 #define DELAY_10MS for(unsigned int ___iii=0; ___iii<NUM_TICKS;___iii++){;}
 
+#define DEFAULT_LED_VALUE 1
+
 static int ms_tick;
 static int release;
 
@@ -44,8 +46,6 @@ void toggle_yellow_led( void );
 int main()
 {
     int timer_dbc;
-    int red_LED_value;
-    int green_LED_value;
 
     // Clear interrupts right away
     cli();
@@ -131,10 +131,8 @@ int main()
 
     // Set locals before enabling interrupts
     timer_dbc = 0;
-    red_LED_value = 1;
-    red_led(red_LED_value);
-    green_LED_value = 1;
-    green_led(green_LED_value);
+    toggle_red_led();
+    toggle_green_led();
 
     //Global interrupt enable
     sei();
@@ -195,21 +193,21 @@ ISR(TIMER3_COMPA_vect)
 
 void toggle_red_led( void )
 {
-    static int red_LED_value = 1;
+    static int red_LED_value = DEFAULT_LED_VALUE;
     red_led(red_LED_value);
     red_LED_value ^= 0x1;
 }
 
 void toggle_green_led( void )
 {
-    static int green_LED_value = 1;
+    static int green_LED_value = DEFAULT_LED_VALUE;
     green_led(green_LED_value);
     green_LED_value ^= 0x1;
 }
 
 void toggle_yellow_led( void )
 {
-    static int yellow_LED_value = 1;
+    static int yellow_LED_value = DEFAULT_LED_VALUE;
     set_digital_output(IO_A0, yellow_LED_value);  // PC1 is low, so drive PD1 low.
     yellow_LED_value ^= 0x1;
 }
