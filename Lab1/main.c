@@ -82,9 +82,9 @@ static int toggle_counter_ms_red;
 static int toggle_counter_ms_green;
 static int toggle_counter_ms_yellow;
 
-void toggle_red_led( void );
-void toggle_green_led( void );
-void toggle_yellow_led( void );
+void task_red_led( void );
+void task_green_led( void );
+void task_yellow_led( void );
 
 void clr_red_toggle_counter( void );
 void clr_green_toggle_counter( void );
@@ -131,9 +131,9 @@ int main()
     clr_red_toggle_counter();
     clr_green_toggle_counter();
     clr_yellow_toggle_counter();
-    toggle_red_led();
-    toggle_green_led();
-    toggle_yellow_led();
+    task_red_led();
+    task_green_led();
+    task_yellow_led();
 
     // Global interrupt enable
     sei();
@@ -147,14 +147,14 @@ int main()
                 BUSY_WAIT;
             }
             //Toggle red
-            toggle_red_led();
+            task_red_led();
         }
         else
         {
             if ( release == 1 )
             {
                 //Toggle red
-                toggle_red_led();
+                task_red_led();
                 release = 0;
             }
         }
@@ -184,7 +184,7 @@ ISR(TIMER1_COMPA_vect)
 
     cSREG = SREG;
 
-    toggle_green_led();
+    task_green_led();
 
     SREG = cSREG;
 }
@@ -200,13 +200,13 @@ ISR(TIMER3_COMPA_vect)
     if ( ( tick_threshold_yellow != 0 ) && ( task3_tick >= tick_threshold_yellow ) )
     {
         task3_tick = 0;
-        toggle_yellow_led();
+        task_yellow_led();
     }
 
     SREG = cSREG;
 }
 
-void toggle_red_led( void )
+void task_red_led( void )
 {
     static int red_LED_value = DEFAULT_LED_VALUE;
 //    set_digital_output(LED_RED, red_LED_value); Enable when have red LED connected to IO port
@@ -215,7 +215,7 @@ void toggle_red_led( void )
     toggle_counter_ms_red++;
 }
 
-void toggle_green_led( void )
+void task_green_led( void )
 {
     // This function should only be used to increment the toggle counter, but until the LED is connected to OC1A, use the green_led function
 
@@ -226,7 +226,7 @@ void toggle_green_led( void )
     toggle_counter_ms_green++;
 }
 
-void toggle_yellow_led( void )
+void task_yellow_led( void )
 {
     static int yellow_LED_value = DEFAULT_LED_VALUE;
     set_digital_output(LED_YELLOW, yellow_LED_value);
