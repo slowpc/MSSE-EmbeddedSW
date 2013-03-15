@@ -181,11 +181,9 @@ ISR(TIMER0_COMPA_vect)
 ISR(TIMER1_COMPA_vect)
 {
     char cSREG;
-    static int task1_tick = 0;
 
     cSREG = SREG;
 
-    task1_tick++;
     toggle_green_led();
 
     SREG = cSREG;
@@ -219,6 +217,8 @@ void toggle_red_led( void )
 
 void toggle_green_led( void )
 {
+    // This function should only be used to increment the toggle counter, but until the LED is connected to OC1A, use the green_led function
+
     static int green_LED_value = DEFAULT_LED_VALUE;
 //    set_digital_output(LED_RED, red_LED_value); Enable when have red LED connected to IO port
     green_led(green_LED_value);
