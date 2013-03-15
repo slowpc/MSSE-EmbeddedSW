@@ -63,6 +63,8 @@ void timer_1284p_set_WGM(TIMER_1284P_E, TIMER_1284P_WGM_E);
 void timer_1284p_set_CS(TIMER_1284P_E, TIMER_1284P_CS_E);
 void timer_1284p_set_OCR(TIMER_1284P_E, TIMER_1284P_AB_E, int);
 void timer_1284p_set_IE(TIMER_1284P_E, TIMER_1284P_INT_E);
+
+void timer_1284p_clr_counter(TIMER_1284P_E);
 void timer_1284p_clr_IE(TIMER_1284P_E, TIMER_1284P_INT_E);
 
 int timer_1284p_get_counter(TIMER_1284P_E);

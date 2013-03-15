@@ -264,6 +264,26 @@ void timer_1284p_set_IE(TIMER_1284P_E timer, TIMER_1284P_INT_E interrupt)
     }
 }
 
+void timer_1284p_clr_counter(TIMER_1284P_E timer)
+{
+    switch( timer )
+    {
+        case TIMER_1284P_0:
+            TCNT0 = 0;
+            break;
+        case TIMER_1284P_1:
+            TCNT1 = 0;
+            break;
+        case TIMER_1284P_2:
+            break;
+        case TIMER_1284P_3:
+            TCNT3 = 0;
+            break;
+        default:
+            break;
+    }
+}
+
 void timer_1284p_clr_IE(TIMER_1284P_E timer, TIMER_1284P_INT_E interrupt)
 {
     int reg_value;
