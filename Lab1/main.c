@@ -54,9 +54,11 @@
 #define DEFAULT_LED_VALUE 1
 
 // LED pin mapping
-#define LED_RED     IO_A2
-#define LED_YELLOW  IO_A0
-#define LED_GREEN   IO_D5 // This is LED is actually driven from PWM on this pin.
+#define LED_RED             IO_A2
+#define LED_YELLOW          IO_A0
+#define LED_PORT_GREEN      DDRD
+#define LED_PORT_GREEN_BIT  DDD5
+//#define LED_GREEN       IO_D5 // This is LED is actually driven from PWM on this pin.
 
 static int release;
 static int tick_threshold_red;
@@ -67,9 +69,17 @@ static int period_ms_red;
 static int period_ms_green;
 static int period_ms_yellow;
 
+static int toggle_counter_ms_red;
+static int toggle_counter_ms_green;
+static int toggle_counter_ms_yellow;
+
 void toggle_red_led( void );
 void toggle_green_led( void );
 void toggle_yellow_led( void );
+
+void clr_red_toggle_counter( void );
+void clr_green_toggle_counter( void );
+void clr_yellow_toggle_counter( void );
 
 void set_red_period( int );
 void set_green_period( int );
@@ -88,8 +98,13 @@ int main()
     tick_threshold_red = 0;
     tick_threshold_green = 0;
     tick_threshold_yellow = 0;
-
+    toggle_counter_ms_red = 0;
+    toggle_counter_ms_green = 0;
+    toggle_counter_ms_yellow = 0;
     clear();
+
+    // Set up IO
+    LED_PORT_GREEN |= ( 1 << LED_PORT_GREEN_BIT );
 
     // Set up timers
     set_timer0();
@@ -100,6 +115,9 @@ int main()
     set_yellow_period( DEFAULT_PERIOD_MS_YELLOW );
 
     // Set locals before enabling interrupts
+    clr_red_toggle_counter();
+    clr_green_toggle_counter();
+    clr_yellow_toggle_counter();
     toggle_red_led();
     toggle_green_led();
     toggle_yellow_led();
@@ -109,11 +127,6 @@ int main()
 
     while( 1 )
     {
-        // Only have this here so that it will get in to the if statement
-        cli();
-        lcd_goto_xy(0, 0);
-        sei();
-
         for ( int i = 0; i < tick_threshold_green; i++ )
         {
             BUSY_WAIT;
@@ -186,20 +199,37 @@ void toggle_yellow_led( void )
     yellow_LED_value ^= 0x1;
 }
 
+void clr_red_toggle_counter( void )
+{
+    toggle_counter_ms_red = 0;
+}
+
+void clr_green_toggle_counter( void )
+{
+    toggle_counter_ms_green = 0;
+}
+
+void clr_yellow_toggle_counter( void )
+{
+    toggle_counter_ms_yellow = 0;
+}
 
 void set_red_period( int new_period )
 {
     tick_threshold_red = (int) ((float)new_period / (float)MS_PER_S * (float)TIMER0_HZ);
+    toggle_counter_ms_red++;
 }
 
 void set_green_period( int new_period )
 {
     tick_threshold_green = (int) ((float)new_period / (float)MS_PER_S * (float)BUSY_WAIT_HZ);
+    toggle_counter_ms_green++;
 }
 
 void set_yellow_period( int new_period )
 {
     tick_threshold_yellow = (int) ((float)new_period / (float)MS_PER_S * (float)TIMER3_HZ);
+    toggle_counter_ms_yellow++;
 }
 
 void set_timer0( void )
