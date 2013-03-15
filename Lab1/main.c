@@ -169,6 +169,8 @@ ISR(TIMER0_COMPA_vect)
     cSREG = SREG;
 
     task0_tick++;
+
+    // If task is enabled and reached its 'release' time
     if ( ( tick_threshold_red != 0 ) && ( task0_tick >= tick_threshold_red ) )
     {
         task0_tick = 0;
@@ -184,7 +186,11 @@ ISR(TIMER1_COMPA_vect)
 
     cSREG = SREG;
 
-    task_green_led();
+    // Check if task is enabled
+    if ( timer1_hz )
+    {
+        task_green_led();
+    }
 
     SREG = cSREG;
 }
@@ -197,6 +203,8 @@ ISR(TIMER3_COMPA_vect)
     cSREG = SREG;
 
     task3_tick++;
+
+    // If task is enabled and reached its 'release' time
     if ( ( tick_threshold_yellow != 0 ) && ( task3_tick >= tick_threshold_yellow ) )
     {
         task3_tick = 0;
@@ -220,7 +228,6 @@ void task_green_led( void )
     // This function should only be used to increment the toggle counter, but until the LED is connected to OC1A, use the green_led function
 
     static int green_LED_value = DEFAULT_LED_VALUE;
-//    set_digital_output(LED_RED, red_LED_value); Enable when have red LED connected to IO port
     green_led(green_LED_value);
     green_LED_value ^= 0x1;
     toggle_counter_ms_green++;
