@@ -28,6 +28,8 @@
 #include "timer_1284p.h"
 #include "usart.h"
 
+#define PRINT_COUNTERS 0
+
 // Timer frequencies
 #define TIMER0_HZ 1000
 #define BUSY_WAIT_HZ 100
@@ -62,7 +64,12 @@
 // LED pin mapping
 #define LED_RED             IO_A2
 #define LED_YELLOW          IO_A0
+#define LED_GREEN           IO_D5 // This pin isn't used because HW sets it
+#define LED_PORT_RED        DDRA
+#define LED_PORT_YELLOW     DDRA
 #define LED_PORT_GREEN      DDRD
+#define LED_PORT_RED_BIT    DDD2
+#define LED_PORT_YELLOW_BIT DDD0
 #define LED_PORT_GREEN_BIT  DDD5
 //#define LED_GREEN       IO_D5 // This is LED is actually driven from PWM on this pin.
 
@@ -114,9 +121,12 @@ int main()
     clear();
 
     // Set up IO
-    LED_PORT_GREEN |= ( 1 << LED_PORT_GREEN_BIT );
+    LED_PORT_RED    |= ( 1 << LED_PORT_RED_BIT );
+    LED_PORT_GREEN  |= ( 1 << LED_PORT_GREEN_BIT );
+    LED_PORT_YELLOW |= ( 1 << LED_PORT_YELLOW_BIT );
+
+    // Set up USART
     init_USART1();
-    fdevopen(USART1_stdio_send, USART1_stdio_get);
 
     // Set up timers
     set_red_period( DEFAULT_PERIOD_MS_RED );
@@ -157,6 +167,36 @@ int main()
                 release = 0;
             }
         }
+
+#if PRINT_COUNTERS
+        cli();
+        lcd_goto_xy(0,0);
+        sei();
+        cli();
+        print("R:");
+        sei();
+        cli();
+        print_long(toggle_counter_ms_red);
+        sei();
+        cli();
+        lcd_goto_xy(8,0);
+        sei();
+        cli();
+        print("G:");
+        sei();
+        cli();
+        print_long(toggle_counter_ms_green);
+        sei();
+        cli();
+        lcd_goto_xy(0,1);
+        sei();
+        cli();
+        print("Y:");
+        sei();
+        cli();
+        print_long(toggle_counter_ms_yellow);
+        sei();
+#endif
     }
 }
 
@@ -216,10 +256,12 @@ ISR(TIMER3_COMPA_vect)
 void task_red_led( void )
 {
     static int red_LED_value = DEFAULT_LED_VALUE;
-//    set_digital_output(LED_RED, red_LED_value); Enable when have red LED connected to IO port
+    set_digital_output(LED_RED, red_LED_value);
     red_led(red_LED_value);
     red_LED_value ^= 0x1;
     toggle_counter_ms_red++;
+
+    usart_check();
 }
 
 void task_green_led( void )
