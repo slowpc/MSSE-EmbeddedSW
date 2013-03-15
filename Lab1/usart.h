@@ -25,7 +25,7 @@
 #define CLOCK_FREQ 20000000
 
 //default baud rate.
-#define BAUD 57600
+#define BAUD 9600
 
 //default size of the transmit and receive buffers
 //should be big enough that it doesn't fill up
@@ -38,6 +38,8 @@
 
 //initialize USART1
 void init_USART1();
+
+void usart_check();
 
 //find out if there is a byte to read 
 //  this allows one to avoid blocking
