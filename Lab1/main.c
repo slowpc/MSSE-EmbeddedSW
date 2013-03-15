@@ -59,7 +59,7 @@
 #define DEFAULT_PERIOD_MS_YELLOW    1000
 
 // Initial LED
-#define DEFAULT_LED_VALUE 1
+#define DEFAULT_LED_VALUE 0
 
 // LED pin mapping
 #define LED_RED             IO_A2
@@ -71,7 +71,6 @@
 #define LED_PORT_RED_BIT    DDD2
 #define LED_PORT_YELLOW_BIT DDD0
 #define LED_PORT_GREEN_BIT  DDD5
-//#define LED_GREEN       IO_D5 // This is LED is actually driven from PWM on this pin.
 
 static int release;
 static int use_busy_wait;
@@ -353,7 +352,7 @@ void set_timer0( void )
     //Compare Output mode to toggle for OC0A
     //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
     //Prescaler of 256
-    timer_1284p_set_COM( TIMER_1284P_0, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
+    timer_1284p_set_COM( TIMER_1284P_0, TIMER_1284P_A, TIMER_1284P_COM_NO_COMPARE);
     timer_1284p_set_WGM( TIMER_1284P_0, TIMER_1284P_WGM_CTC );
     timer_1284p_set_CS( TIMER_1284P_0, TIMER_1284P_CS_PRESCALE_DIV256);
 
@@ -441,7 +440,7 @@ void set_timer3( void )
     //Compare Output mode to toggle for OC0A
     //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
     //Prescaler of 64
-    timer_1284p_set_COM( TIMER_1284P_3, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
+    timer_1284p_set_COM( TIMER_1284P_3, TIMER_1284P_A, TIMER_1284P_COM_NO_COMPARE);
     timer_1284p_set_WGM( TIMER_1284P_3, TIMER_1284P_WGM_CTC );
     timer_1284p_set_CS( TIMER_1284P_3, TIMER_1284P_CS_PRESCALE_DIV64);
 
