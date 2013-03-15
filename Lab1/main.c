@@ -53,6 +53,11 @@
 // Initial LED
 #define DEFAULT_LED_VALUE 1
 
+// LED pin mapping
+#define LED_RED     IO_A2
+#define LED_YELLOW  IO_A0
+#define LED_GREEN   IO_D5 // This is LED is actually driven from PWM on this pin.
+
 static int release;
 static int tick_threshold_red;
 static int tick_threshold_green;
@@ -162,6 +167,7 @@ ISR(TIMER3_COMPA_vect)
 void toggle_red_led( void )
 {
     static int red_LED_value = DEFAULT_LED_VALUE;
+//    set_digital_output(LED_RED, red_LED_value); Enable when have red LED connected to IO port
     red_led(red_LED_value);
     red_LED_value ^= 0x1;
 }
@@ -176,7 +182,7 @@ void toggle_green_led( void )
 void toggle_yellow_led( void )
 {
     static int yellow_LED_value = DEFAULT_LED_VALUE;
-    set_digital_output(IO_A0, yellow_LED_value);
+    set_digital_output(LED_YELLOW, yellow_LED_value);
     yellow_LED_value ^= 0x1;
 }
 
