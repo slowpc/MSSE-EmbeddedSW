@@ -26,6 +26,7 @@
 #include <avr/io.h>         //gives us names for registers
 #include <avr/interrupt.h>
 #include "timer_1284p.h"
+#include "usart.h"
 
 // Timer frequencies
 #define TIMER0_HZ 1000
@@ -74,10 +75,6 @@ static int tick_threshold_green;
 static int tick_threshold_yellow;
 static float timer1_hz;
 
-static int period_ms_red;
-static int period_ms_green;
-static int period_ms_yellow;
-
 static int toggle_counter_ms_red;
 static int toggle_counter_ms_green;
 static int toggle_counter_ms_yellow;
@@ -118,6 +115,8 @@ int main()
 
     // Set up IO
     LED_PORT_GREEN |= ( 1 << LED_PORT_GREEN_BIT );
+    init_USART1();
+    fdevopen(USART1_stdio_send, USART1_stdio_get);
 
     // Set up timers
     set_red_period( DEFAULT_PERIOD_MS_RED );
