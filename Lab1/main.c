@@ -54,9 +54,9 @@
 #define BUSY_WAIT for(unsigned int ___iii=0; ___iii<NUM_TICKS;___iii++){;}
 
 // Initial periods
-#define DEFAULT_PERIOD_MS_RED       500
-#define DEFAULT_PERIOD_MS_GREEN     500
-#define DEFAULT_PERIOD_MS_YELLOW    100
+#define DEFAULT_PERIOD_MS_RED       1000
+#define DEFAULT_PERIOD_MS_GREEN     1000
+#define DEFAULT_PERIOD_MS_YELLOW    1000
 
 // Initial LED
 #define DEFAULT_LED_VALUE 1
