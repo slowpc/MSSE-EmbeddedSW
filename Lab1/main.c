@@ -150,7 +150,7 @@ ISR(TIMER0_COMPA_vect)
     cSREG = SREG;
 
     task0_tick++;
-    if ( task0_tick >= tick_threshold_red )
+    if ( ( tick_threshold_red != 0 ) && ( task0_tick >= tick_threshold_red ) )
     {
         task0_tick = 0;
         release = 1;
@@ -167,7 +167,7 @@ ISR(TIMER3_COMPA_vect)
     cSREG = SREG;
 
     task3_tick++;
-    if ( task3_tick >= tick_threshold_yellow )
+    if ( ( tick_threshold_yellow != 0 ) && ( task3_tick >= tick_threshold_yellow ) )
     {
         task3_tick = 0;
         toggle_yellow_led();
