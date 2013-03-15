@@ -18,6 +18,7 @@ void timer_1284p_set_COM(TIMER_1284P_E timer, TIMER_1284P_AB_E ab, TIMER_1284P_C
 
     reg_val = com & 0x3;
     shift_amount = 0;
+    mask = 0;
 
     switch ( ab )
     {
@@ -39,17 +40,17 @@ void timer_1284p_set_COM(TIMER_1284P_E timer, TIMER_1284P_AB_E ab, TIMER_1284P_C
     switch( timer )
     {
         case TIMER_1284P_0:
-            TCCR0A &= mask;
+            TCCR0A &= ~mask;
             TCCR0A |= reg_val;
             break;
         case TIMER_1284P_1:
-            TCCR1A &= mask;
+            TCCR1A &= ~mask;
             TCCR1A |= reg_val;
             break;
         case TIMER_1284P_2:
             break;
         case TIMER_1284P_3:
-            TCCR3A &= mask;
+            TCCR3A &= ~mask;
             TCCR3A |= reg_val;
             break;
         default:
