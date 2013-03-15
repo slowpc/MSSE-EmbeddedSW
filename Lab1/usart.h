@@ -33,7 +33,7 @@
 #define DEFAULT_BUF_SIZE 1<<8
 
 /*************************
- *     funtions          *
+ *     functions          *
  *************************/
 
 //initialize USART1
