@@ -2,6 +2,28 @@
 #include "cbuf.h"
 
 #include <avr/interrupt.h>
+#include <pololu/orangutan.h>
+
+
+
+// receive_buffer: A ring buffer that we will use to receive bytes on USB_COMM.
+// The OrangutanSerial library will put received bytes in to
+// the buffer starting at the beginning (receiveBuffer[0]).
+// After the buffer has been filled, the library will automatically
+// start over at the beginning.
+char receive_buffer[32];
+
+// receive_buffer_position: This variable will keep track of which bytes in the receive buffer
+// we have already processed.  It is the offset (0-31) of the next byte
+// in the buffer to process.
+unsigned char receive_buffer_position = 0;
+
+// send_buffer: A buffer for sending bytes on USB_COMM.
+char send_buffer[32];
+
+void check_for_new_bytes_received();
+
+
 
 //our transmit and receive buffers
 static uint8_t tx_buf[DEFAULT_BUF_SIZE];
@@ -18,12 +40,20 @@ static uint8_t usart_input[INPUT_BUFFER_SIZE];
 uint8_t G_flag;
 
 //setup USART1 to receive/transmit
-void init_USART1() {
+void init_USART1()
+{
+    // Set the baud rate to 9600 bits per second.  Each byte takes ten bit
+    // times, so you can get at most 960 bytes per second at this speed.
+    serial_set_baud_rate(USB_COMM, 9600);
 
+    // Start receiving bytes in the ring buffer.
+    serial_receive_ring(USB_COMM, receive_buffer, sizeof(receive_buffer));
+
+/*
   //calculate the value for the UBRR register using the equation
   //given on page 175
   //  UBRR = ( osc / (16 * BAUD) ) - 1
-  uint16_t ubrr_val = (CLOCK_FREQ / (16*BAUD) ) - 1;
+  uint16_t ubrr_val = (uint16_t)((float)CLOCK_FREQ / (16.0f*(float)BAUD) ) - 1;
 
   //set up the baud speed
   UBRR1H = (ubrr_val >> 8) & 0xFF;
@@ -43,12 +73,13 @@ void init_USART1() {
   UCSR1C =            //page 192
     ((1 << UCSZ11) |  //these two specify 8 data bits
      (1 << UCSZ10) |
-     (1 << USBS1)     //and a stop bit
+     (0 << USBS1)     // stop bits: 0 = 1-bit, 1 = 2-bit
      );
 
   //now we have to initialize our transmit and receive buffers
   CBUF_INIT(&usart1_tx, tx_buf, DEFAULT_BUF_SIZE);
   CBUF_INIT(&usart1_rx, rx_buf, DEFAULT_BUF_SIZE);
+  */
 }
 
 
@@ -149,9 +180,9 @@ int USART1_stdio_get(FILE * f) {
  *  see page 59 for available interrupts
  *  signal names defined in avr/iom128.h
  **********************************************************/
-
+/*
 //called when there is data to receive
-ISR(USART0_RX_vect) {
+ISR(USART1_RX_vect) {
 
 	G_flag = 1;
 
@@ -162,7 +193,8 @@ ISR(USART0_RX_vect) {
   //replace it with a newline (for stdio functions)
   if(ch == '\r') ch = '\n';
 
-  //printf("%c", ch);
+lcd_goto_xy(0,0);
+print_character(ch);
 
   //If we have a backspace character and the buffer isn't empty,
   //we need to remove the most-recently added char from the buffer.
@@ -176,11 +208,12 @@ ISR(USART0_RX_vect) {
     CBUF_PUSH(&usart1_rx, ch);
   }
 }
-
+*/
+/*
 //called with the data register is empty
 //  the data register is where we put the data we want 
 //  to send.
-ISR(USART0_TX_vect) {
+ISR(USART1_TX_vect) {
   if(! CBUF_EMPTY(&usart1_tx)) {
     //pop data from the transmit buffer and put it in the
     //data register
@@ -191,4 +224,35 @@ ISR(USART0_TX_vect) {
     //nothing to send, so turn off the interrupt
     UCSR1B &= ~(1 << UDRIE1);
   }
+}
+*/
+
+void check_for_new_bytes_received()
+{
+    while(serial_get_received_bytes(USB_COMM) != receive_buffer_position)
+    {
+        // Process the new byte that has just been received.
+        print_character(receive_buffer[receive_buffer_position]);
+        //        process_received_byte(receive_buffer[receive_buffer_position]);
+
+        // Increment receive_buffer_position, but wrap around when it gets to
+        // the end of the buffer.
+        if (receive_buffer_position == sizeof(receive_buffer)-1)
+        {
+            receive_buffer_position = 0;
+        }
+        else
+        {
+            receive_buffer_position++;
+        }
+    }
+}
+
+void usart_check()
+{
+    clear();
+    lcd_goto_xy(0,1);
+    serial_check();
+    print_long(serial_get_received_bytes(USB_COMM));
+    check_for_new_bytes_received();
 }
