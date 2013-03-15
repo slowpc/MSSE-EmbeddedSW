@@ -21,31 +21,41 @@
 **   3. PWM signal   -> schedule task 3
 */
 
+// Includes
 #include <pololu/orangutan.h>
 #include <avr/io.h>         //gives us names for registers
 #include <avr/interrupt.h>
 #include "timer_1284p.h"
 
-#define CPU_FREQ 20000000
-#define TICKS_PER_CYCLE 4
-#define MS_PER_S 1000
-#define NUM_MS_TO_DELAY 10
-// ( 20M CPU cycles / 1 second ) * ( 1 second / 1000 milliseconds ) * ( 1 loop / 4 CPU cycles) * ( 10 milliseconds )
-#define NUM_TICKS (CPU_FREQ/MS_PER_S/TICKS_PER_CYCLE*NUM_MS_TO_DELAY)
-#define DELAY_10MS for(unsigned int ___iii=0; ___iii<NUM_TICKS;___iii++){;}
+// Timer frequencies
+#define TIMER0_HZ 1000
+#define BUSY_WAIT_HZ 100
+#define TIMER3_HZ 10
 
-#define DEFAULT_PERIOD_MS           500
-#define DEFAULT_PERIOD_MS_RED       DEFAULT_PERIOD_MS
-#define DEFAULT_PERIOD_MS_GREEN     DEFAULT_PERIOD_MS
+// Conversions
+#define MS_PER_S 1000
+
+// CPU Definitions
+#define CPU_FREQ 20000000
+
+// Busy waiting
+#define NUM_MS_TO_WAIT ( MS_PER_S / BUSY_WAIT_HZ )
+#define TICKS_PER_CYCLE 4 // Empty for loop with optimization of -1 has 2 instructions that each take 2 cycles until the last iteration
+// ( 20M CPU cycles / 1 second ) * ( 1 second / 1000 milliseconds ) * ( 1 loop / 4 CPU cycles) * ( 10 milliseconds )
+#define NUM_TICKS (CPU_FREQ/MS_PER_S/TICKS_PER_CYCLE*NUM_MS_TO_WAIT)
+#define BUSY_WAIT for(unsigned int ___iii=0; ___iii<NUM_TICKS;___iii++){;}
+
+// Initial periods
+#define DEFAULT_PERIOD_MS_RED       500
+#define DEFAULT_PERIOD_MS_GREEN     500
 #define DEFAULT_PERIOD_MS_YELLOW    100
 
+// Initial LED
 #define DEFAULT_LED_VALUE 1
-
-#define TIMER0_HZ 1000
-#define TIMER3_HZ 10
 
 static int release;
 static int tick_threshold_red;
+static int tick_threshold_green;
 static int tick_threshold_yellow;
 
 static int period_ms_red;
@@ -71,6 +81,7 @@ int main()
 
     release = 0;
     tick_threshold_red = 0;
+    tick_threshold_green = 0;
     tick_threshold_yellow = 0;
 
     clear();
@@ -98,18 +109,15 @@ int main()
         lcd_goto_xy(0, 0);
         sei();
 
-/*
-        for ( int i = 0; i < 50; i++ )
+        for ( int i = 0; i < tick_threshold_green; i++ )
         {
-            DELAY_10MS;
+            BUSY_WAIT;
         }
         toggle_green_led();
-*/
 
         if ( release == 1 )
         {
             //Toggle red
-            toggle_green_led();
             toggle_red_led();
             release = 0;
         }
@@ -180,6 +188,7 @@ void set_red_period( int new_period )
 
 void set_green_period( int new_period )
 {
+    tick_threshold_green = (int) ((float)new_period / (float)MS_PER_S * (float)BUSY_WAIT_HZ);
 }
 
 void set_yellow_period( int new_period )
