@@ -30,12 +30,11 @@
 // Timer frequencies
 #define TIMER0_HZ 1000
 #define BUSY_WAIT_HZ 100
-#define TIMER1_HZ 1000
 #define TIMER3_HZ 10
 
 // Timer prescalers
 #define TIMER0_PRESCALER 256
-#define TIMER1_PRESCALER 64
+#define TIMER1_PRESCALER 1024
 #define TIMER3_PRESCALER 64
 
 // Conversions
@@ -73,6 +72,7 @@ static int tick_threshold_red;
 static int tick_threshold_red_busy;
 static int tick_threshold_green;
 static int tick_threshold_yellow;
+static float timer1_hz;
 
 static int period_ms_red;
 static int period_ms_green;
@@ -113,6 +113,7 @@ int main()
     toggle_counter_ms_red = 0;
     toggle_counter_ms_green = 0;
     toggle_counter_ms_yellow = 0;
+    timer1_hz = 0.0f;
     clear();
 
     // Set up IO
@@ -185,11 +186,7 @@ ISR(TIMER1_COMPA_vect)
     cSREG = SREG;
 
     task1_tick++;
-    if ( ( tick_threshold_green != 0 ) && ( task1_tick >= tick_threshold_green ) )
-    {
-        task1_tick = 0;
-        toggle_green_led();
-    }
+    toggle_green_led();
 
     SREG = cSREG;
 }
@@ -260,7 +257,22 @@ void set_red_period( int new_period )
 
 void set_green_period( int new_period )
 {
-    tick_threshold_green = (int) ((float)new_period / (float)MS_PER_S * (float)TIMER1_HZ);
+    int timer1_counter;
+
+    cli();
+
+    if ( new_period )
+    {
+        timer1_hz = (float)MS_PER_S / (float)new_period;
+        timer1_counter = (int) ((float)CPU_FREQ/timer1_hz/(float)TIMER1_PRESCALER);
+    }
+    else
+    {
+        timer1_hz = 0;
+        timer1_counter = 0xFFFF;
+    }
+
+    timer_1284p_set_OCR( TIMER_1284P_1, TIMER_1284P_A, timer1_counter - 1 );
 }
 
 void set_yellow_period( int new_period )
@@ -309,8 +321,7 @@ void set_timer0( void )
 
 void set_timer1( void )
 {
-    float green_freq;
-    int green_period_counts;
+    int timer1_counter;
 
     cli();
 
@@ -337,11 +348,19 @@ void set_timer1( void )
     //Prescaler of 64
     timer_1284p_set_COM( TIMER_1284P_1, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
     timer_1284p_set_WGM( TIMER_1284P_1, TIMER_1284P_WGM_CTC );
-    timer_1284p_set_CS( TIMER_1284P_1, TIMER_1284P_CS_PRESCALE_DIV64);
+    timer_1284p_set_CS( TIMER_1284P_1, TIMER_1284P_CS_PRESCALE_DIV1024);
 
-    #define TIMER1_COUNTER ( (int) ((float)CPU_FREQ/(float)TIMER1_HZ/(float)TIMER1_PRESCALER) )
+    if ( timer1_hz )
+    {
+        timer1_counter = (int) ((float)CPU_FREQ/timer1_hz/(float)TIMER1_PRESCALER);
+    }
+    else
+    {
+        timer1_counter = 0xFFFF;
+    }
+
     // Timer period of 78 (16-bit register)
-    timer_1284p_set_OCR( TIMER_1284P_1, TIMER_1284P_A, TIMER1_COUNTER - 1 );
+    timer_1284p_set_OCR( TIMER_1284P_1, TIMER_1284P_A, timer1_counter - 1 );
 
     // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
     timer_1284p_clr_IE( TIMER_1284P_1, TIMER_1284P_IE_B );
