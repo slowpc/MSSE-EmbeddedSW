@@ -34,142 +34,102 @@
 #define NUM_TICKS (CPU_FREQ/MS_PER_S/TICKS_PER_CYCLE*NUM_MS_TO_DELAY)
 #define DELAY_10MS for(unsigned int ___iii=0; ___iii<NUM_TICKS;___iii++){;}
 
+#define DEFAULT_PERIOD_MS           500
+#define DEFAULT_PERIOD_MS_RED       DEFAULT_PERIOD_MS
+#define DEFAULT_PERIOD_MS_GREEN     DEFAULT_PERIOD_MS
+#define DEFAULT_PERIOD_MS_YELLOW    100
+
 #define DEFAULT_LED_VALUE 1
 
-static int ms_tick;
+#define TIMER0_HZ 1000
+#define TIMER3_HZ 10
+
 static int release;
+static int tick_threshold_red;
+static int tick_threshold_yellow;
+
+static int period_ms_red;
+static int period_ms_green;
+static int period_ms_yellow;
 
 void toggle_red_led( void );
 void toggle_green_led( void );
 void toggle_yellow_led( void );
 
+void set_red_period( int );
+void set_green_period( int );
+void set_yellow_period( int );
+
+void set_timer0( void );
+void set_timer3( void );
+
 int main()
 {
-    int timer_dbc;
 
     // Clear interrupts right away
     cli();
 
-    ms_tick = 0;
     release = 0;
-
-    // Set up IO
-    
-
-    // Set up timers
-    /*
-    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescaler ticks) * (1 interrput / timer_period counts)
-    **
-    ** CPU_freq is 20MHz.
-    ** We want the frequency of the interrupt to be 1 ms (1000Hz) and need to find values of prescaler and timer_period (TOP, aka OCRnA)
-    **
-    ** 1000 = (20E6 / 1) * (1 / prescaler) * (1 / timer_period)
-    ** prescaler = 20E6 / (1000 * timer_period)
-    **
-    ** prescaler = 256
-    ** timer_period = 78
-    **
-    ** freq_interrupt [actual] = 20M / 256 / 78 = 1001.60Hz
-    */
-
-    //Compare Output mode to toggle for OC0A
-    //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
-    //Prescaler of 256
-    timer_1284p_set_COM( TIMER_1284P_0, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
-    timer_1284p_set_WGM( TIMER_1284P_0, TIMER_1284P_WGM_CTC );
-    timer_1284p_set_CS( TIMER_1284P_0, TIMER_1284P_CS_PRESCALE_DIV256);
-
-#define TIMER0_HZ 1000
-#define TIMER0_PRESCALER 256
-#define TIMER0_PERIOD (CPU_FREQ/TIMER0_HZ/TIMER0_PRESCALER)
-    // Timer period of 78 (8-bit register)
-    timer_1284p_set_OCR( TIMER_1284P_0, TIMER_1284P_A, TIMER0_PERIOD - 1 );
-
-    // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
-    timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_B );
-    timer_1284p_set_IE( TIMER_1284P_0, TIMER_1284P_IE_A );
-    timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_OVERFLOW );
-
-
-
-
-    /*
-    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescaler ticks) * (1 interrput / timer_period counts)
-    **
-    ** CPU_freq is 20MHz.
-    ** We want the frequency of the interrupt to be 100 ms (10Hz) and need to find values of prescaler and timer_period (TOP, aka OCRnA)
-    **
-    ** 10 = (20E6 / 1) * (1 / prescaler) * (1 / timer_period)
-    ** prescaler = 20E6 / (10 * timer_period)
-    **
-    ** prescaler = 64
-    ** timer_period = 31250
-    **
-    ** freq_interrupt [actual] = 20M / 256 / 7812 = 10.00064Hz
-    */
-
-    //Compare Output mode to toggle for OC0A
-    //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
-    //Prescaler of 256
-    timer_1284p_set_COM( TIMER_1284P_3, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
-    timer_1284p_set_WGM( TIMER_1284P_3, TIMER_1284P_WGM_CTC );
-    timer_1284p_set_CS( TIMER_1284P_3, TIMER_1284P_CS_PRESCALE_DIV64);
-
-#define TIMER3_HZ 10
-#define TIMER3_PRESCALER 64
-#define TIMER3_PERIOD (CPU_FREQ/TIMER3_HZ/TIMER3_PRESCALER)
-    // Timer period of 78 (8-bit register)
-    timer_1284p_set_OCR( TIMER_1284P_3, TIMER_1284P_A, TIMER3_PERIOD - 1 );
-
-    // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
-    timer_1284p_clr_IE( TIMER_1284P_3, TIMER_1284P_IE_B );
-    timer_1284p_set_IE( TIMER_1284P_3, TIMER_1284P_IE_A );
-    timer_1284p_clr_IE( TIMER_1284P_3, TIMER_1284P_IE_OVERFLOW );
-
+    tick_threshold_red = 0;
+    tick_threshold_yellow = 0;
 
     clear();
 
+    // Set up timers
+    set_timer0();
+    set_timer3();
+
+    set_red_period( DEFAULT_PERIOD_MS_RED );
+    set_green_period( DEFAULT_PERIOD_MS_GREEN );
+    set_yellow_period( DEFAULT_PERIOD_MS_YELLOW );
+
     // Set locals before enabling interrupts
-    timer_dbc = 0;
     toggle_red_led();
     toggle_green_led();
+    toggle_yellow_led();
 
-    //Global interrupt enable
+    // Global interrupt enable
     sei();
 
     while( 1 )
     {
+        // Only have this here so that it will get in to the if statement
+        cli();
         lcd_goto_xy(0, 0);
-        //print_long(TCNT0);
-        
+        sei();
+
+/*
         for ( int i = 0; i < 50; i++ )
         {
             DELAY_10MS;
         }
         toggle_green_led();
-        
+*/
+
         if ( release == 1 )
         {
             //Toggle red
+            toggle_green_led();
             toggle_red_led();
             release = 0;
         }
-	}
+    }
 }
 
 ISR(TIMER0_COMPA_vect)
 {
     char cSREG;
-    
+    static int task0_tick = 0;
+
     cSREG = SREG;
-    
-    ms_tick++;
-    if ( ms_tick == 500 )
+
+    task0_tick++;
+    if ( task0_tick >= tick_threshold_red )
     {
-        ms_tick = 0;
+        task0_tick = 0;
         release = 1;
     }
-    
+
     SREG = cSREG;
 }
 
@@ -181,10 +141,10 @@ ISR(TIMER3_COMPA_vect)
     cSREG = SREG;
 
     task3_tick++;
-    if ( task3_tick == 1 )
+    if ( task3_tick >= tick_threshold_yellow )
     {
-        toggle_yellow_led();
         task3_tick = 0;
+        toggle_yellow_led();
     }
 
     SREG = cSREG;
@@ -208,6 +168,93 @@ void toggle_green_led( void )
 void toggle_yellow_led( void )
 {
     static int yellow_LED_value = DEFAULT_LED_VALUE;
-    set_digital_output(IO_A0, yellow_LED_value);  // PC1 is low, so drive PD1 low.
+    set_digital_output(IO_A0, yellow_LED_value);
     yellow_LED_value ^= 0x1;
+}
+
+
+void set_red_period( int new_period )
+{
+    tick_threshold_red = (int) ((float)new_period / (float)MS_PER_S * (float)TIMER0_HZ);
+}
+
+void set_green_period( int new_period )
+{
+}
+
+void set_yellow_period( int new_period )
+{
+    tick_threshold_yellow = (int) ((float)new_period / (float)MS_PER_S * (float)TIMER3_HZ);
+}
+
+void set_timer0( void )
+{
+    /*
+    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescaler ticks) * (1 interrput / timer_period counts)
+    **
+    ** CPU_freq is 20MHz.
+    ** We want the frequency of the interrupt to be 1 ms (1000Hz) and need to find values of prescaler and timer_period (TOP, aka OCRnA)
+    **
+    ** hz = (20E6 / 1) * (1 / prescaler) * (1 / timer_period)
+    ** timer_period = 20E6 / (hz * prescaler )
+    ** prescaler    = 20E6 / (hz * timer_period )
+    **
+    ** prescaler = 256
+    ** timer_period = 78
+    **
+    ** freq_interrupt [actual] = 20M / 256 / 78 = 1001.603Hz
+    */
+
+    //Compare Output mode to toggle for OC0A
+    //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
+    //Prescaler of 256
+    timer_1284p_set_COM( TIMER_1284P_0, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
+    timer_1284p_set_WGM( TIMER_1284P_0, TIMER_1284P_WGM_CTC );
+    timer_1284p_set_CS( TIMER_1284P_0, TIMER_1284P_CS_PRESCALE_DIV256);
+
+#define TIMER0_PRESCALER 256
+#define TIMER0_PERIOD ( (int) ((float)CPU_FREQ/(float)TIMER0_HZ/(float)TIMER0_PRESCALER) )
+    // Timer period of 78 (8-bit register)
+    timer_1284p_set_OCR( TIMER_1284P_0, TIMER_1284P_A, TIMER0_PERIOD - 1 );
+
+    // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
+    timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_B );
+    timer_1284p_set_IE( TIMER_1284P_0, TIMER_1284P_IE_A );
+    timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_OVERFLOW );
+}
+
+void set_timer3( void )
+{
+    /*
+    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescaler ticks) * (1 interrput / timer_period counts)
+    **
+    ** CPU_freq is 20MHz.
+    ** We want the frequency of the interrupt to be 100 ms (10Hz) and need to find values of prescaler and timer_period (TOP, aka OCRnA)
+    **
+    ** hz = (20E6 / 1) * (1 / prescaler) * (1 / timer_period)
+    ** timer_period = 20E6 / (hz * prescaler)
+    ** prescaler    = 20E6 / (hz * timer_period)
+    **
+    ** prescaler = 64
+    ** timer_period = 31250
+    **
+    ** freq_interrupt [actual] = 20M / 64 / 31250 = 10Hz
+    */
+
+    //Compare Output mode to toggle for OC0A
+    //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
+    //Prescaler of 256
+    timer_1284p_set_COM( TIMER_1284P_3, TIMER_1284P_A, TIMER_1284P_COM_TOGGLE);
+    timer_1284p_set_WGM( TIMER_1284P_3, TIMER_1284P_WGM_CTC );
+    timer_1284p_set_CS( TIMER_1284P_3, TIMER_1284P_CS_PRESCALE_DIV64);
+
+#define TIMER3_PRESCALER 64
+#define TIMER3_PERIOD ( (int) ((float)CPU_FREQ/(float)TIMER3_HZ/(float)TIMER3_PRESCALER) )
+    // Timer period of 78 (16-bit register)
+    timer_1284p_set_OCR( TIMER_1284P_3, TIMER_1284P_A, TIMER3_PERIOD - 1 );
+
+    // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
+    timer_1284p_clr_IE( TIMER_1284P_3, TIMER_1284P_IE_B );
+    timer_1284p_set_IE( TIMER_1284P_3, TIMER_1284P_IE_A );
+    timer_1284p_clr_IE( TIMER_1284P_3, TIMER_1284P_IE_OVERFLOW );
 }
