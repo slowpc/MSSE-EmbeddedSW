@@ -2,11 +2,7 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-
-// GLOBALS
-uint32_t G_red_toggles = 0;
-uint32_t G_green_toggles = 0;
-uint32_t G_yellow_toggles = 0;
+#include <string.h>
 
 void clr_red_toggle_counter( void );
 void clr_green_toggle_counter( void );
@@ -18,7 +14,7 @@ void set_red_period( int new_period );
 void set_green_period( int new_period );
 void set_yellow_period( int new_period );
 
-#define ECHO2LCD
+//#define ECHO2LCD
 
 // local "global" data structures
 char receive_buffer[32];
@@ -28,11 +24,21 @@ char send_buffer[32];
 // A generic function for whenever you want to print to your serial comm window.
 // Provide a string and the length of that string. My serial comm likes "\r\n" at 
 // the end of each string (be sure to include in length) for proper linefeed.
-void print_usb( char *buffer, int n ) {
-	serial_send( USB_COMM, buffer, n );
-	wait_for_sending_to_finish();
-}	
-		
+void print_usb_char( char buffer ) {
+    char local_buf[2];
+    local_buf[0] = buffer;
+    local_buf[1] = NULL;
+    print_usb( local_buf );
+}
+
+void print_usb( char *buffer )
+{
+    int length;
+    length = strlen( buffer );
+    serial_send( USB_COMM, buffer, length );
+    wait_for_sending_to_finish();
+}
+
 //------------------------------------------------------------------------------------------
 // Initialize serial communication through USB and print menu options
 // This immediately readies the board for serial comm
@@ -50,10 +56,10 @@ void init_menu() {
 	//memcpy_P( send_buffer, PSTR("USB Serial Initialized\r\n"), 24 );
 	//snprintf( printBuffer, 24, "USB Serial Initialized\r\n");
 	//print_usb( printBuffer, 24 );
-	print_usb( "\r\n\nUSB Serial Initialized\r\n", 27);
+	print_usb( "\r\n\nUSB Serial Initialized\r\n" );
 
 	//memcpy_P( send_buffer, MENU, MENU_LENGTH );
-	print_usb( MENU, MENU_LENGTH );
+	print_usb( MENU );
 }
 
 //------------------------------------------------------------------------------------------
@@ -63,7 +69,6 @@ void init_menu() {
 void process_received_string(const char* buffer)
 {
 	// Used to pass to USB_COMM for serial communication
-	int length;
 	char tempBuffer[32];
 	
 	// parse and echo back to serial comm window (and optionally the LCD)
@@ -79,8 +84,8 @@ void process_received_string(const char* buffer)
 	lcd_goto_xy(0,0);
 	printf("Got %c %c %d\n", op_char, color, value);
 #endif
-	length = sprintf( tempBuffer, "Op:%c C:%c V:%d\r\n", op_char, color, value );
-	print_usb( tempBuffer, length );
+	sprintf( tempBuffer, "Op:%c C:%c V:%d\r\n", op_char, color, value );
+	print_usb( tempBuffer );
 	
 	// convert color to upper and check if valid
 	color -= 32*(color>='a' && color<='z');
@@ -90,8 +95,8 @@ void process_received_string(const char* buffer)
 		case 'Y': 
 		case 'A': break;
 		default:
-			print_usb( "Bad Color. Try {RGYA}\r\n", 23 );
-			print_usb( MENU, MENU_LENGTH);
+			print_usb( "Bad Color. Try {RGYA}\r\n" );
+			print_usb( MENU );
 			return;
 	}
 
@@ -103,27 +108,27 @@ void process_received_string(const char* buffer)
 		    switch(color) {
     		    case 'R':
     		        set_red_period( value );
-    		        length = sprintf( tempBuffer, "R freq: %d\r\n", value );
-    		        print_usb( tempBuffer, length );
+    		        sprintf( tempBuffer, "R freq: %d\r\n", value );
+    		        print_usb( tempBuffer );
     		        break;
     		    case 'G':
     		        set_green_period( value );
-    		        length = sprintf( tempBuffer, "G freq: %d\r\n", value );
-    		        print_usb( tempBuffer, length );
+    		        sprintf( tempBuffer, "G freq: %d\r\n", value );
+    		        print_usb( tempBuffer );
     		        break;
     		    case 'Y':
     		        set_yellow_period( value );
-    		        length = sprintf( tempBuffer, "Y freq: %d\r\n", value );
-    		        print_usb( tempBuffer, length );
+    		        sprintf( tempBuffer, "Y freq: %d\r\n", value );
+    		        print_usb( tempBuffer );
     		        break;
     		    case 'A':
     		        set_red_period( value );
     		        set_green_period( value );
     		        set_yellow_period( value );
-    		        length = sprintf( tempBuffer, "Freq R:%d G:%d Y:%d\r\n", value, value, value );
-    		        print_usb( tempBuffer, length );
+    		        sprintf( tempBuffer, "Freq R:%d G:%d Y:%d\r\n", value, value, value );
+    		        print_usb( tempBuffer );
     		        break;
-    		    default: print_usb("Default in t(color). How?\r\n", 27 );
+    		    default: print_usb("Default in t(color). How?\r\n" );
             }
 		    break;
 		// print counter for <color> LED 
@@ -131,22 +136,22 @@ void process_received_string(const char* buffer)
 		case 'p':
 			switch(color) {
 				case 'R': 
-					length = sprintf( tempBuffer, "R toggles: %d\r\n", get_red_toggle_counter() );
-					print_usb( tempBuffer, length ); 
+					sprintf( tempBuffer, "R toggles: %d\r\n", get_red_toggle_counter() );
+					print_usb( tempBuffer ); 
 					break;
 				case 'G': 
-					length = sprintf( tempBuffer, "G toggles: %d\r\n", get_green_toggle_counter() );
-					print_usb( tempBuffer, length ); 
+					sprintf( tempBuffer, "G toggles: %d\r\n", get_green_toggle_counter() );
+					print_usb( tempBuffer ); 
 					break;
 				case 'Y': 
-					length = sprintf( tempBuffer, "Y toggles: %d\r\n", get_yellow_toggle_counter() );
-					print_usb( tempBuffer, length ); 
+					sprintf( tempBuffer, "Y toggles: %d\r\n", get_yellow_toggle_counter() );
+					print_usb( tempBuffer ); 
 					break;
 				case 'A': 
-					length = sprintf( tempBuffer, "Toggles R:%d G:%d Y:%d\r\n", get_red_toggle_counter(), get_green_toggle_counter(), get_yellow_toggle_counter() );
-					print_usb( tempBuffer, length ); 
+					sprintf( tempBuffer, "Toggles R:%d G:%d Y:%d\r\n", get_red_toggle_counter(), get_green_toggle_counter(), get_yellow_toggle_counter() );
+					print_usb( tempBuffer ); 
 					break;
-				default: print_usb("Default in p(color). How?\r\n", 27 );
+				default: print_usb("Default in p(color). How?\r\n" );
 			}
 			break;
 
@@ -156,34 +161,34 @@ void process_received_string(const char* buffer)
 			switch(color) {
 				case 'R':
                     clr_red_toggle_counter();
-                    length = sprintf( tempBuffer, "Zero R\r\n" );
-                    print_usb( tempBuffer, length );
+                    sprintf( tempBuffer, "Zero R\r\n" );
+                    print_usb( tempBuffer );
                     break;
 				case 'G':
                     clr_green_toggle_counter();
-                    length = sprintf( tempBuffer, "Zero G\r\n" );
-                    print_usb( tempBuffer, length );
+                    sprintf( tempBuffer, "Zero G\r\n" );
+                    print_usb( tempBuffer );
                     break;
 				case 'Y':
-				    length = sprintf( tempBuffer, "Zero Y\r\n" );
-				    print_usb( tempBuffer, length );
+				    sprintf( tempBuffer, "Zero Y\r\n" );
+				    print_usb( tempBuffer );
                     clr_yellow_toggle_counter();
                     break;
 				case 'A':
                     clr_red_toggle_counter();
                     clr_green_toggle_counter();
                     clr_yellow_toggle_counter();
-                    length = sprintf( tempBuffer, "Zero All\r\n" );
-                    print_usb( tempBuffer, length );
+                    sprintf( tempBuffer, "Zero All\r\n" );
+                    print_usb( tempBuffer );
                     break;
-				default: print_usb("Default in z(color). How?\r\n", 27 );
+				default: print_usb("Default in z(color). How?\r\n" );
 			}
 			break;
 		default:
-			print_usb( "Command does not compute.\r\n", 27 );
+			print_usb( "Command does not compute.\r\n" );
 		} // end switch(op_char) 
 		
-	print_usb( MENU, MENU_LENGTH);
+	print_usb( MENU );
 
     sei();
 
@@ -218,7 +223,7 @@ void check_for_new_bytes_received()
 		// place in a buffer for processing
 		menuBuffer[received] = receive_buffer[receive_buffer_position];
 
-print_usb( &menuBuffer[received], 1 );
+print_usb_char( menuBuffer[received] );
 
 #ifdef ECHO2LCD
 lcd_goto_xy(0,0);
@@ -233,7 +238,7 @@ for (int i=0; i<received; i++)
 
         if ( menuBuffer[received] == '\r' )
         {
-            print_usb( "\n", 1 );
+            print_usb( "\n" );
             evaluate = 1;
         }
 
