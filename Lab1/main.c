@@ -149,6 +149,10 @@ int main()
 
     while( 1 )
     {
+
+        serial_check();
+        check_for_new_bytes_received();
+
         if ( use_busy_wait )
         {
             for ( int i = 0; i < tick_threshold_red_busy; i++ )
@@ -260,9 +264,6 @@ void task_red_led( void )
     red_led(red_LED_value);
     red_LED_value ^= 0x1;
     toggle_counter_ms_red++;
-
-    serial_check();
-    check_for_new_bytes_received();
 }
 
 void task_green_led( void )
@@ -296,6 +297,21 @@ void clr_green_toggle_counter( void )
 void clr_yellow_toggle_counter( void )
 {
     toggle_counter_ms_yellow = 0;
+}
+
+int get_red_toggle_counter( void )
+{
+    return toggle_counter_ms_red;
+}
+
+int get_green_toggle_counter( void )
+{
+    return toggle_counter_ms_green;
+}
+
+int get_yellow_toggle_counter( void )
+{
+    return toggle_counter_ms_yellow;
 }
 
 void set_red_period( int new_period )

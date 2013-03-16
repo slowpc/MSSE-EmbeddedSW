@@ -8,6 +8,16 @@ uint32_t G_red_toggles = 0;
 uint32_t G_green_toggles = 0;
 uint32_t G_yellow_toggles = 0;
 
+void clr_red_toggle_counter( void );
+void clr_green_toggle_counter( void );
+void clr_yellow_toggle_counter( void );
+int get_red_toggle_counter( void );
+int get_green_toggle_counter( void );
+int get_yellow_toggle_counter( void );
+void set_red_period( int new_period );
+void set_green_period( int new_period );
+void set_yellow_period( int new_period );
+
 #define ECHO2LCD
 
 // local "global" data structures
@@ -40,7 +50,7 @@ void init_menu() {
 	//memcpy_P( send_buffer, PSTR("USB Serial Initialized\r\n"), 24 );
 	//snprintf( printBuffer, 24, "USB Serial Initialized\r\n");
 	//print_usb( printBuffer, 24 );
-	print_usb( "USB Serial Initialized\r\n", 24);
+	print_usb( "\r\n\nUSB Serial Initialized\r\n", 27);
 
 	//memcpy_P( send_buffer, MENU, MENU_LENGTH );
 	print_usb( MENU, MENU_LENGTH );
@@ -61,6 +71,9 @@ void process_received_string(const char* buffer)
 	char op_char;
 	int value;
 	int parsed;
+
+    cli();
+
 	parsed = sscanf(buffer, "%c %c %d", &op_char, &color, &value);
 #ifdef ECHO2LCD
 	lcd_goto_xy(0,0);
@@ -87,26 +100,50 @@ void process_received_string(const char* buffer)
 		// change toggle frequency for <color> LED
 		case 'T':
 		case 't':
-// >			//set_toggle(color,value);
-			break; 
+		    switch(color) {
+    		    case 'R':
+    		        set_red_period( value );
+    		        length = sprintf( tempBuffer, "R freq: %d\r\n", value );
+    		        print_usb( tempBuffer, length );
+    		        break;
+    		    case 'G':
+    		        set_green_period( value );
+    		        length = sprintf( tempBuffer, "G freq: %d\r\n", value );
+    		        print_usb( tempBuffer, length );
+    		        break;
+    		    case 'Y':
+    		        set_yellow_period( value );
+    		        length = sprintf( tempBuffer, "Y freq: %d\r\n", value );
+    		        print_usb( tempBuffer, length );
+    		        break;
+    		    case 'A':
+    		        set_red_period( value );
+    		        set_green_period( value );
+    		        set_yellow_period( value );
+    		        length = sprintf( tempBuffer, "Freq R:%d G:%d Y:%d\r\n", value, value, value );
+    		        print_usb( tempBuffer, length );
+    		        break;
+    		    default: print_usb("Default in t(color). How?\r\n", 27 );
+            }
+		    break;
 		// print counter for <color> LED 
 		case 'P':
 		case 'p':
 			switch(color) {
 				case 'R': 
-					length = sprintf( tempBuffer, "R toggles: %ld\r\n", G_red_toggles );
+					length = sprintf( tempBuffer, "R toggles: %d\r\n", get_red_toggle_counter() );
 					print_usb( tempBuffer, length ); 
 					break;
 				case 'G': 
-					length = sprintf( tempBuffer, "G toggles: %ld\r\n", G_green_toggles );
+					length = sprintf( tempBuffer, "G toggles: %d\r\n", get_green_toggle_counter() );
 					print_usb( tempBuffer, length ); 
 					break;
 				case 'Y': 
-					length = sprintf( tempBuffer, "Y toggles: %ld\r\n", G_yellow_toggles );
+					length = sprintf( tempBuffer, "Y toggles: %d\r\n", get_yellow_toggle_counter() );
 					print_usb( tempBuffer, length ); 
 					break;
 				case 'A': 
-					length = sprintf( tempBuffer, "Toggles R:%ld G:%ld Y:%ld\r\n", G_red_toggles, G_green_toggles, G_yellow_toggles );
+					length = sprintf( tempBuffer, "Toggles R:%d G:%d Y:%d\r\n", get_red_toggle_counter(), get_green_toggle_counter(), get_yellow_toggle_counter() );
 					print_usb( tempBuffer, length ); 
 					break;
 				default: print_usb("Default in p(color). How?\r\n", 27 );
@@ -117,10 +154,28 @@ void process_received_string(const char* buffer)
 		case 'Z':
 		case 'z':
 			switch(color) {
-				case 'R': G_red_toggles=0; break;
-				case 'G': G_green_toggles=0; break;
-				case 'Y': G_yellow_toggles=0; break;
-				case 'A': G_red_toggles = G_green_toggles = G_yellow_toggles = 0; break;
+				case 'R':
+                    clr_red_toggle_counter();
+                    length = sprintf( tempBuffer, "Zero R\r\n" );
+                    print_usb( tempBuffer, length );
+                    break;
+				case 'G':
+                    clr_green_toggle_counter();
+                    length = sprintf( tempBuffer, "Zero G\r\n" );
+                    print_usb( tempBuffer, length );
+                    break;
+				case 'Y':
+				    length = sprintf( tempBuffer, "Zero Y\r\n" );
+				    print_usb( tempBuffer, length );
+                    clr_yellow_toggle_counter();
+                    break;
+				case 'A':
+                    clr_red_toggle_counter();
+                    clr_green_toggle_counter();
+                    clr_yellow_toggle_counter();
+                    length = sprintf( tempBuffer, "Zero All\r\n" );
+                    print_usb( tempBuffer, length );
+                    break;
 				default: print_usb("Default in z(color). How?\r\n", 27 );
 			}
 			break;
@@ -129,6 +184,8 @@ void process_received_string(const char* buffer)
 		} // end switch(op_char) 
 		
 	print_usb( MENU, MENU_LENGTH);
+
+    sei();
 
 } //end menu()
 
@@ -152,6 +209,7 @@ void check_for_new_bytes_received()
 	*/ 
 	char menuBuffer[32];
 	static int received = 0;
+    int evaluate = 0;
 	
 	// while there are unprocessed keystrokes in the receive_buffer, grab them and buffer
 	// them into the menuBuffer
@@ -159,6 +217,26 @@ void check_for_new_bytes_received()
 	{
 		// place in a buffer for processing
 		menuBuffer[received] = receive_buffer[receive_buffer_position];
+
+print_usb( &menuBuffer[received], 1 );
+
+#ifdef ECHO2LCD
+lcd_goto_xy(0,0);
+print("RX: (");
+print_long(menuBuffer[received]);
+print_character(')');
+for (int i=0; i<received; i++)
+{
+    print_character(menuBuffer[i]);
+}
+#endif
+
+        if ( menuBuffer[received] == '\r' )
+        {
+            print_usb( "\n", 1 );
+            evaluate = 1;
+        }
+
 		++received;
 		
 		// Increment receive_buffer_position, but wrap around when it gets to
@@ -172,18 +250,28 @@ void check_for_new_bytes_received()
 			receive_buffer_position++;
 		}
 	}
-	// If there were keystrokes processed, check if a menue command
-	if (received) {
+#ifdef ECHO2LCD
+		lcd_goto_xy(0,1);
+		print("RX: (");
+		print_long(received);
+		print_character(')');
+		for (int i=0; i<received; i++)
+		{
+			print_character(menuBuffer[i]);
+		}
+#endif
+	// If there were keystrokes processed, check if a menu command
+	if ( evaluate ) {/*
 		// if only 1 received, it was MOST LIKELY a carriage return. 
 		// Even if it was a single keystroke, it is not a menu command, so ignore it.
 		if ( 1 == received ) {
 			received = 0;
 			return;
-		}
+		}*/
 		// Process buffer: terminate string, process, reset index to beginning of array to receive another command
 		menuBuffer[received] = '\0';
 #ifdef ECHO2LCD
-		lcd_goto_xy(0,1);			
+		lcd_goto_xy(0,1);
 		print("RX: (");
 		print_long(received);
 		print_character(')');
