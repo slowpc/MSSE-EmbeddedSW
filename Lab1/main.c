@@ -26,7 +26,7 @@
 #include <avr/io.h>         //gives us names for registers
 #include <avr/interrupt.h>
 #include "timer_1284p.h"
-#include "usart.h"
+#include "menu.h"
 
 #define PRINT_COUNTERS 0
 
@@ -125,7 +125,8 @@ int main()
     LED_PORT_YELLOW |= ( 1 << LED_PORT_YELLOW_BIT );
 
     // Set up USART
-    init_USART1();
+    lcd_init_printf();
+    init_menu();
 
     // Set up timers
     set_red_period( DEFAULT_PERIOD_MS_RED );
@@ -260,7 +261,8 @@ void task_red_led( void )
     red_LED_value ^= 0x1;
     toggle_counter_ms_red++;
 
-    usart_check();
+    serial_check();
+    check_for_new_bytes_received();
 }
 
 void task_green_led( void )
