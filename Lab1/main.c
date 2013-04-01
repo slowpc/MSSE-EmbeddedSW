@@ -173,33 +173,15 @@ int main()
         }
 
 #if PRINT_COUNTERS
-        cli();
         lcd_goto_xy(0,0);
-        sei();
-        cli();
         print("R:");
-        sei();
-        cli();
         print_long(toggle_counter_ms_red);
-        sei();
-        cli();
         lcd_goto_xy(8,0);
-        sei();
-        cli();
         print("G:");
-        sei();
-        cli();
         print_long(toggle_counter_ms_green);
-        sei();
-        cli();
         lcd_goto_xy(0,1);
-        sei();
-        cli();
         print("Y:");
-        sei();
-        cli();
         print_long(toggle_counter_ms_yellow);
-        sei();
 #endif
     }
 }
