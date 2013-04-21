@@ -22,13 +22,21 @@
 
 function real_time_data_plot
     %% Serial port constants
+
+    % COM
     COM_PORT = 'COM7';
     BAUD_RATE = 256000;
+
+    % General
     MEM_PREALLOCATE = 100000;
-    GUI_REFRESH_MS_DEFAULT = 200;
-    GUI_REFRESH_MS_MIN = 150;
-    GUI_REFRESH_MS_MAX = 1000;
-    MS_PER_S = 1000;
+
+    % PD Controller
+    KP_DEFAULT = 2.0;
+    KP_MIN = 0.15;
+    KP_MAX = 5.0;
+    KD_DEFAULT = 2.0;
+    KD_MIN = 0.15;
+    KD_MAX = 5.0;
     
     %% Preallocate variables to graph
     curX  = nan(1, MEM_PREALLOCATE);
@@ -115,7 +123,6 @@ function real_time_data_plot
     
     function stopReading(hObj,event)
         enableLoop = 0;
-        
     end
     
     function clearGraph(hObj,event)
@@ -236,37 +243,38 @@ function real_time_data_plot
         drawnow;
     end
 
-    %% GUI refresh
-
+    %% PD Constants
     cumXpos = 200;
-    
-    xWidthText = 75;
+    xWidthText = 50;
+    xWidthSlider = 200;
+    xWidthTextBox = 50;
+
+    %% K - Derivative (Kd)
     uicontrol( figureHandle, ...
         'Style', 'text', ...
-        'String', 'GUI Refresh', ...
+        'String', 'Kd', ...
         'Position', [cumXpos 0 xWidthText valueHeight]);
     cumXpos = cumXpos + xWidthText + 10;
 
-    xWidthSlider = 200;
-    GUIRefreshSlider = uicontrol( figureHandle, ...
+    GUISliderKd = uicontrol( figureHandle, ...
         'Style', 'slider', ...
         'Min', 0,...
-        'Max', GUI_REFRESH_MS_MAX,...
-        'Value', GUI_REFRESH_MS_DEFAULT,...
+        'Max', KD_MAX,...
+        'Value', KD_DEFAULT,...
         'SliderStep',[0.01 0.1],...
-        'Callback', @updateGUIRefresh,...
+        'Callback', @updateKd,...
         'Position', [cumXpos 0 xWidthSlider valueHeight]);
     cumXpos = cumXpos + xWidthSlider + 5;
 
-    xWidthTextBox = 50;
-    GUIRefreshText = uicontrol( figureHandle, ...
+    GUITextKd = uicontrol( figureHandle, ...
         'Style', 'edit', ...
-        'String', GUI_REFRESH_MS_DEFAULT,...
-        'Callback', @updateGUIRefresh,...
+        'String', KD_DEFAULT,...
+        'Callback', @updateKd,...
         'Position', [cumXpos 0 xWidthTextBox valueHeight]);
     cumXpos = cumXpos + xWidthTextBox;
 
-    function updateGUIRefresh(obj, event, valRaw)
+    % Callback
+    function updateKd(obj, event)
         style = get(obj, 'Style');
         isSlider = strcmpi(style, 'slider');
         
@@ -278,21 +286,84 @@ function real_time_data_plot
             
             % Check if it is actually a number
             if ( ~isnumeric(valRaw) || isnan(valRaw) )
-                valRaw = GUI_REFRESH_MS_DEFAULT;
+                valRaw = KD_DEFAULT;
             end
         end
  
-        if (valRaw < GUI_REFRESH_MS_MIN)
-            valRaw = GUI_REFRESH_MS_MIN;
+        if (valRaw < KD_MIN)
+            val = KD_MIN;
+        else
+            if (valRaw > KD_MAX)
+                val = KD_MAX;
+            else
+                val = valRaw;
+            end
         end
-        if (valRaw > GUI_REFRESH_MS_MAX)
-            valRaw = GUI_REFRESH_MS_MAX;
-        end
-        valRounded = round(valRaw);
-        val = valRounded / MS_PER_S;
 
-        set(GUIRefreshSlider, 'Value', valRounded);
-        set(GUIRefreshText, 'String', num2str(valRounded));
+        disp(val);
+        
+        set(GUISliderKd, 'Value', val);
+        set(GUITextKd, 'String', num2str(val));
+
+        drawnow
+    end
+
+    %% K - Proportional (Kp)
+    cumXpos = 200;
+    uicontrol( figureHandle, ...
+        'Style', 'text', ...
+        'String', 'Kp', ...
+        'Position', [cumXpos valueHeight xWidthText valueHeight]);
+    cumXpos = cumXpos + xWidthText + 10;
+
+    GUISliderKp = uicontrol( figureHandle, ...
+        'Style', 'slider', ...
+        'Min', 0,...
+        'Max', KD_MAX,...
+        'Value', KD_DEFAULT,...
+        'SliderStep',[0.01 0.1],...
+        'Callback', @updateKp,...
+        'Position', [cumXpos valueHeight xWidthSlider valueHeight]);
+    cumXpos = cumXpos + xWidthSlider + 5;
+
+    GUITextKp = uicontrol( figureHandle, ...
+        'Style', 'edit', ...
+        'String', KD_DEFAULT,...
+        'Callback', @updateKp,...
+        'Position', [cumXpos valueHeight xWidthTextBox valueHeight]);
+    cumXpos = cumXpos + xWidthTextBox;
+
+    % Callback
+    function updateKp(obj, event)
+        style = get(obj, 'Style');
+        isSlider = strcmpi(style, 'slider');
+        
+        % Check where to get the data from
+        if ( isSlider )
+            valRaw = get(obj, 'Value');
+        else
+            valRaw = str2double(get(obj,'String'));
+            
+            % Check if it is actually a number
+            if ( ~isnumeric(valRaw) || isnan(valRaw) )
+                valRaw = KP_DEFAULT;
+            end
+        end
+ 
+        if (valRaw < KP_MIN)
+            val = KP_MIN;
+        else
+            if (valRaw > KP_MAX)
+                val = KP_MAX;
+            else
+                val = valRaw;
+            end
+        end
+
+        disp(val);
+
+        set(GUISliderKp, 'Value', val);
+        set(GUITextKp, 'String', num2str(val));
 
         drawnow
     end
