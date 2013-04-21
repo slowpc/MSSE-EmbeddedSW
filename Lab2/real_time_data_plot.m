@@ -214,34 +214,6 @@ function real_time_data_plot
         'Enable', 'off', ...
         'Position', [0 cumValueHeight valueWidth valueHeight]);
     cumValueHeight = cumValueHeight + valueHeight;
-    
-    %% Update all the graphs    
-    function updateGraph(obj, event)
-        % Update graphs
-        set(axesPe,'NextPlot','replacechildren');
-        plot(axesPe, curX, curPe, 'b');
-        set(axesKp,'NextPlot','replacechildren');
-        plot(axesKp, curX, curKp, 'b');
-        set(axesP,'NextPlot','replacechildren');
-        plot(axesP,  curX, curPr, 'r', curX, curPm, 'b');
-        set(axesT,'NextPlot','replacechildren');
-        plot(axesT,  curX, curT, 'b');
-        set(axesT,'NextPlot','replacechildren');
-        plot(axesV,  curX, curVm, 'b');
-        set(axesT,'NextPlot','replacechildren');
-        plot(axesKd, curX, curKd, 'b');
-
-        % Update text fields
-        set(PeValue, 'String', lastPe);
-        set(KpValue, 'String', lastKp);
-        set(PrValue, 'String', lastPr);
-        set(PmValue, 'String', lastPm);
-        set(TValue,  'String', lastT);
-        set(VmValue, 'String', lastVm);
-        set(KdValue, 'String', lastKd);
-
-        drawnow;
-    end
 
     %% PD Constants
     cumXpos = 200;
@@ -377,13 +349,6 @@ function real_time_data_plot
     fopen(com);
     
     %% Initialization before collecting data
-    
-    % Update the graphs at a minimum period (in case the background task
-    % never gets executed
-    timerPlot = timer('TimerFcn', @updateGraph, 'Period', 1.0, 'ExecutionMode', 'fixedRate');
-    start(timerPlot);
-    
-    % Other stuff to initialize
     enableLoop = 1;
     tick = 1;
     set(figureHandle, 'Visible','on');
@@ -398,12 +363,12 @@ function real_time_data_plot
 
             % Parse the data
             curX(tick) = tick;
-            lastKp = com_input(1);
             lastPr = com_input(1);
             lastPm = com_input(2);
-            lastT  = com_input(1);
-            lastVm = com_input(1);
-            lastKd = com_input(1);
+            lastVm = com_input(3);
+            lastT  = com_input(4);
+            lastKp = com_input(5);
+            lastKd = com_input(6);
             lastPe = lastPm - lastPr;
 
             % Add to the graph arrays
@@ -421,7 +386,29 @@ function real_time_data_plot
 
     while ( enableLoop )
         % Update graphs
-        updateGraph([],[]);
+        set(axesPe,'NextPlot','replacechildren');
+        plot(axesPe, curX, curPe, 'b');
+        set(axesKp,'NextPlot','replacechildren');
+        plot(axesKp, curX, curKp, 'b');
+        set(axesP,'NextPlot','replacechildren');
+        plot(axesP,  curX, curPr, 'r', curX, curPm, 'b');
+        set(axesT,'NextPlot','replacechildren');
+        plot(axesT,  curX, curT, 'b');
+        set(axesT,'NextPlot','replacechildren');
+        plot(axesV,  curX, curVm, 'b');
+        set(axesT,'NextPlot','replacechildren');
+        plot(axesKd, curX, curKd, 'b');
+
+        % Update text fields
+        set(PeValue, 'String', lastPe);
+        set(KpValue, 'String', lastKp);
+        set(PrValue, 'String', lastPr);
+        set(PmValue, 'String', lastPm);
+        set(TValue,  'String', lastT);
+        set(VmValue, 'String', lastVm);
+        set(KdValue, 'String', lastKd);
+
+        drawnow;
     end
     
     % COM ports
@@ -431,8 +418,4 @@ function real_time_data_plot
 
     % Figures
     close(figureHandle);
-
-    % Timers
-    stop(timerPlot);
-    delete(timerPlot);
 end
