@@ -15,8 +15,8 @@
 #include <string.h>
 
 #define BUFFER_SIZE 32
-#define LOOP_DELAY 50
-#define LOOP_DELAY_ACTUAL (LOOP_DELAY / 2)
+#define LOOP_DELAY_US 20000
+#define LOOP_DELAY_ACTUAL_US (LOOP_DELAY_US / 2)
 #define MAX_INT_OUTPUT 100
 #define USB_BAUD_RATE 256000
 
@@ -63,14 +63,11 @@ int main()
 
     clear();
 
-print_long(1);
 	play_from_program_space(PSTR(">g32>>c32"));  // Play welcoming notes.
 
 
-print_long(2);
     serial_set_baud_rate(USB_COMM, USB_BAUD_RATE);
 
-print_long(3);
 	while(1)
 	{
         /*
@@ -86,21 +83,17 @@ print_long(3);
 		delay_ms(200);  // Wait for 200 ms.
         */
 
-print_long(4);
-        snprintf( buffer, BUFFER_SIZE, "%d,%d,%d\r\n", i, j, k );
+        snprintf( buffer, BUFFER_SIZE, "%d,%d,%d,%d,%d,%d\r\n", i, j, k, i, i, i );
 
-print_long(5);
         print_usb( buffer );
 
-print_long(6);
         clear();
-        print_long(read_battery_millivolts_svp());
 
-        red_led(1);     // Turn on the red LED.
-        delay_ms( LOOP_DELAY_ACTUAL );
+//        red_led(1);     // Turn on the red LED.
+        delay_us( LOOP_DELAY_ACTUAL_US );
 
-        red_led(0);     // Turn off the red LED.
-        delay_ms( LOOP_DELAY_ACTUAL );
+//        red_led(0);     // Turn off the red LED.
+        delay_us( LOOP_DELAY_ACTUAL_US );
 
         if ( i % 1 == 0 )
         {
