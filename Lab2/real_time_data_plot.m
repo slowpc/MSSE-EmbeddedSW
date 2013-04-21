@@ -294,6 +294,8 @@ function real_time_data_plot
     end
 
     %% Setup the serial port
+    
+    % Open ther COM port
     com = serial(COM_PORT);
     set(com, 'BaudRate', BAUD_RATE)
     fclose(instrfind);
@@ -305,6 +307,37 @@ function real_time_data_plot
     tick = 1;
     set(figureHandle, 'Visible','on');
     start( timerPlot );
+    
+    %% Setup callbacks for receiving data
+    set(com, 'BytesAvailableFcnMode', 'terminator');
+    set(com, 'BytesAvailableFcn', @newCOMData);
+    
+    function newCOMData(obj, event)
+        while ( obj.BytesAvailable )
+            com_input = fscanf(obj,'%d,%d,%d,%d,%d,%d');
+
+            % Parse the data
+            curX(tick) = tick;
+            lastKp = com_input(1);
+            lastPr = com_input(1);
+            lastPm = com_input(2);
+            lastT  = com_input(1);
+            lastVm = com_input(1);
+            lastKd = com_input(1);
+            lastPe = lastPm - lastPr;
+
+            % Add to the graph arrays
+            curPe(tick) = lastPe;
+            curKp(tick) = lastKp;
+            curPr(tick) = lastPr;
+            curPm(tick) = lastPm;
+            curT(tick)  = lastT;
+            curVm(tick) = lastVm;
+            curKd(tick) = lastKd;
+
+            tick = tick + 1;
+        end
+    end
 
     %% Collect data 
     while ( enableLoop == 1 )
@@ -322,29 +355,6 @@ function real_time_data_plot
                 curVm = nan(1, MEM_PREALLOCATE);
                 curKd = nan(1, MEM_PREALLOCATE);
             end
-
-            %% Read the device and parse the data
-            com_input = fscanf(com,'%d,%d,%d,%d,%d,%d');
-
-            curX(tick) = tick;
-            lastKp = com_input(1);
-            lastPr = com_input(1);
-            lastPm = com_input(2);
-            lastT  = com_input(1);
-            lastVm = com_input(1);
-            lastKd = com_input(1);
-            lastPe = lastPm - lastPr;
-            
-            %% Add to the graph arrays
-            curPe(tick) = lastPe;
-            curKp(tick) = lastKp;
-            curPr(tick) = lastPr;
-            curPm(tick) = lastPm;
-            curT(tick)  = lastT;
-            curVm(tick) = lastVm;
-            curKd(tick) = lastKd;
-            
-            tick = tick + 1;
     end
     
     %% Clean up
