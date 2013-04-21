@@ -93,6 +93,8 @@ int main()
     // Initialize the encoders and specify the four input pins, first two are for motor 1, second two are for motor 2
     encoders_init( PIN_ENCODER_1A, PIN_ENCODER_1B, PIN_ENCODER_2A, PIN_ENCODER_2B );
 
+    Pr = 100;
+
 	while(1)
 	{
         // Count inputs
@@ -111,10 +113,12 @@ int main()
             if ( direction == 1 && Pm > 100)
             {
                 direction = 0;
+                Pr = 32;
             }
             else if ( direction == 0 && Pm < 32 )
             {
                 direction = 1;
+                Pr = 100;
             }
         }
 
@@ -134,7 +138,6 @@ int main()
             T = MOTOR_SPEED_MAX;
 
         set_motors( 0, T );
-        Pr = 32;
 
         snprintf( buffer, BUFFER_SIZE, "%d,%d,%d,%d,%d,%d\r\n", Pr, Pm, Vm, T, Kp, Kd );
 
