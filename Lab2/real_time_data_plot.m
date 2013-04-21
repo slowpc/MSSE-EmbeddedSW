@@ -216,7 +216,7 @@ function real_time_data_plot
     cumValueHeight = cumValueHeight + valueHeight;
     
     %% Update all the graphs    
-    function updateGraph()
+    function updateGraph(obj, event)
         % Update graphs
         set(axesPe,'NextPlot','replacechildren');
         plot(axesPe, curX, curPe, 'b');
@@ -421,7 +421,7 @@ function real_time_data_plot
 
     while ( enableLoop )
         % Update graphs
-        updateGraph();
+        updateGraph([],[]);
     end
     
     % COM ports
