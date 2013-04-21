@@ -25,8 +25,8 @@ function real_time_data_plot
     COM_PORT = 'COM7';
     BAUD_RATE = 256000;
     MEM_PREALLOCATE = 100000;
-    GUI_REFRESH_MS_DEFAULT = 100;
-    GUI_REFRESH_MS_MIN = 100;
+    GUI_REFRESH_MS_DEFAULT = 200;
+    GUI_REFRESH_MS_MIN = 150;
     GUI_REFRESH_MS_MAX = 1000;
     MS_PER_S = 1000;
     
@@ -56,24 +56,11 @@ function real_time_data_plot
 
     % Set axes
     axesPe = subplot(3,2,1, 'Parent', figureHandle);
-    plotPe = plot(axesPe, curX, curPe);
-
     axesKp = subplot(3,2,2, 'Parent', figureHandle);
-    plotKp = plot(axesKp, curX, curKp);
-
     axesP  = subplot(3,2,3, 'Parent', figureHandle);
-    plotPr = plot(axesP, curX, curPr);
-    hold on
-    plotPm = plot(axesP, curX, curPm);
-
     axesT  = subplot(3,2,4, 'Parent', figureHandle);
-    plotT  = plot(axesT, curX, curT);
-
     axesV  = subplot(3,2,5, 'Parent', figureHandle);
-    plotVm = plot(axesV, curX, curVm);
-
     axesKd = subplot(3,2,6, 'Parent', figureHandle);
-    plotKd = plot(axesKd, curX, curKd);
     
     %% Subplot strings
     
@@ -96,16 +83,6 @@ function real_time_data_plot
     title(axesKd, 'K - Derivative (Kd)');
 
     %% Other plot data
-    
-%     plotPr = plot(axesP, x,Pr);
-%     plotPm = plot(axesP, x,Pm);
-%     legend( [plotPr,plotPm], 'Position Ref', 'Position Target',  'Location', 'SouthWest');
-
-%     plotPe = plot(axesPe,x,Pe);
-%     plotKp = plot(axesKp,x,Kp);
-%     plotT  = plot(axesT, x,T);
-%     plotVm = plot(axesV, x,Vm);
-%     plotKd = plot(axesKd,x,Kd);
 
 %     legend( plotPe, 'Position Error',   'Location', 'SouthWest');
 %     legend( plotKp, 'K - Prop',         'Location', 'SouthWest');
@@ -225,39 +202,30 @@ function real_time_data_plot
     timerPlot = timer('TimerFcn', @updateGraph, 'Period', 1.0/8, 'ExecutionMode', 'fixedRate');
     
     function updateGraph(obj, event)
-%                 set(plotPe,'YData',curPe,'XData',curX);
-%                 set(plotKp,'YData',curKp,'XData',curX);
-%                 set(plotPm,'YData',curPm,'XData',curX);
-%                 set(plotPr,'YData',curPr,'XData',curX);
-                set(plotT, 'YData',curT, 'XData',curX);
-                set(plotVm,'YData',curVm,'XData',curX);
-                set(plotKd,'YData',curKd,'XData',curX);
+        % Update graphs
+        set(axesPe,'NextPlot','replacechildren');
+        plot(axesPe, curX, curPe, 'b');
+        set(axesKp,'NextPlot','replacechildren');
+        plot(axesKp, curX, curKp, 'b');
+        set(axesP,'NextPlot','replacechildren');
+        plot(axesP,  curX, curPr, 'r', curX, curPm, 'b');
+        set(axesT,'NextPlot','replacechildren');
+        plot(axesT,  curX, curT, 'b');
+        set(axesT,'NextPlot','replacechildren');
+        plot(axesV,  curX, curVm, 'b');
+        set(axesT,'NextPlot','replacechildren');
+        plot(axesKd, curX, curKd, 'b');
 
-                set(axesPe,'NextPlot','replacechildren');
-                plot(axesPe, curX, curPe, 'b');
-                set(axesKp,'NextPlot','replacechildren');
-                plot(axesKp, curX, curKp, 'b');
-%                 plotKp = plot(axesKp, curX, curKp);
-                set(axesP,'NextPlot','replacechildren');
-%                 plotPr = plot(axesP,  curX, curPr);
-%                 hold on
-%                 plotPm = plot(axesP,  curX, curPm);
-%                 plotPrPm = plot(axesP,  [curX curX], [curPr curPm]);
-                plot(axesP,  curX, curPr, 'r', curX, curPm, 'b');
-%                 plotT  = plot(axesT,  curX, curT);
-%                 plotVm = plot(axesV,  curX, curVm);
-%                 plotKd = plot(axesKd, curX, curKd);
+        % Update text fields
+        set(PeValue, 'String', lastPe);
+        set(KpValue, 'String', lastKp);
+        set(PrValue, 'String', lastPr);
+        set(PmValue, 'String', lastPm);
+        set(TValue,  'String', lastT);
+        set(VmValue, 'String', lastVm);
+        set(KdValue, 'String', lastKd);
 
-                set(PeValue, 'String', lastPe);
-                set(KpValue, 'String', lastKp);
-                set(PrValue, 'String', lastPr);
-                set(PmValue, 'String', lastPm);
-                set(TValue,  'String', lastT);
-                set(VmValue, 'String', lastVm);
-                set(KdValue, 'String', lastKd);
-
-%                 set(figureHandle,'Visible','on');
-                drawnow;
+        drawnow;
     end
 
     %% GUI refresh
@@ -354,18 +322,17 @@ function real_time_data_plot
                 curVm = nan(1, MEM_PREALLOCATE);
                 curKd = nan(1, MEM_PREALLOCATE);
             end
+
             %% Read the device and parse the data
             com_input = fscanf(com,'%d,%d,%d,%d,%d,%d');
 
             curX(tick) = tick;
-
             lastKp = com_input(1);
             lastPr = com_input(1);
             lastPm = com_input(2);
             lastT  = com_input(1);
             lastVm = com_input(1);
             lastKd = com_input(1);
-
             lastPe = lastPm - lastPr;
             
             %% Add to the graph arrays
@@ -376,44 +343,6 @@ function real_time_data_plot
             curT(tick)  = lastT;
             curVm(tick) = lastVm;
             curKd(tick) = lastKd;
-            
-            %% Conditionally update the GUI
-            % This should probably be done in a timer callback instead of here
-%             if ( mod(tick,8) == 0 )
-% %                 set(plotPe,'YData',curPe,'XData',curX);
-% %                 set(plotKp,'YData',curKp,'XData',curX);
-% %                 set(plotPm,'YData',curPm,'XData',curX);
-% %                 set(plotPr,'YData',curPr,'XData',curX);
-%                 set(plotT, 'YData',curT, 'XData',curX);
-%                 set(plotVm,'YData',curVm,'XData',curX);
-%                 set(plotKd,'YData',curKd,'XData',curX);
-% 
-%                 set(axesPe,'NextPlot','replacechildren');
-%                 plot(axesPe, curX, curPe, 'b');
-%                 set(axesKp,'NextPlot','replacechildren');
-%                 plot(axesKp, curX, curKp, 'b');
-% %                 plotKp = plot(axesKp, curX, curKp);
-%                 set(axesP,'NextPlot','replacechildren');
-% %                 plotPr = plot(axesP,  curX, curPr);
-% %                 hold on
-% %                 plotPm = plot(axesP,  curX, curPm);
-% %                 plotPrPm = plot(axesP,  [curX curX], [curPr curPm]);
-%                 plot(axesP,  curX, curPr, 'r', curX, curPm, 'b');
-% %                 plotT  = plot(axesT,  curX, curT);
-% %                 plotVm = plot(axesV,  curX, curVm);
-% %                 plotKd = plot(axesKd, curX, curKd);
-% 
-%                 set(PeValue, 'String', lastPe);
-%                 set(KpValue, 'String', lastKp);
-%                 set(PrValue, 'String', lastPr);
-%                 set(PmValue, 'String', lastPm);
-%                 set(TValue,  'String', lastT);
-%                 set(VmValue, 'String', lastVm);
-%                 set(KdValue, 'String', lastKd);
-% 
-% %                 set(figureHandle,'Visible','on');
-%                 drawnow;
-%             end
             
             tick = tick + 1;
     end
