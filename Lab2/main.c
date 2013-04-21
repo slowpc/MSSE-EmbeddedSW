@@ -16,9 +16,28 @@
 
 #define BUFFER_SIZE 32
 #define LOOP_DELAY_US 20000
-#define LOOP_DELAY_ACTUAL_US (LOOP_DELAY_US / 2)
 #define MAX_INT_OUTPUT 100
 #define USB_BAUD_RATE 256000
+
+// Motor
+#define MOTOR_SPEED_INIT                50
+#define MOTOR_SPEED_MIN                 25
+#define MOTOR_SPEED_MAX                 125
+
+// Encoder pin mapping
+#define PIN_ENCODER_1A                  IO_A2
+#define PIN_ENCODER_1B                  IO_A3
+#define PIN_ENCODER_2A                  IO_A0
+#define PIN_ENCODER_2B                  IO_A1
+
+// Encoder
+#define ENCODER_COUNT_HYS_RANGE         8
+#define ENCODER_COUNT_PER_REV           32
+#define ENCODER_NUM_REVS                2
+#define ENCODER_ABS_MAX                 ( ENCODER_COUNT_PER_REV * ENCODER_NUM_REVS )
+#define ENCODER_MIN                     -ENCODER_ABS_MAX
+#define ENCODER_MAX                     ENCODER_ABS_MAX
+#define ENCODER_START                   -ENCODER_ABS_MAX
 
 
 void print_usb_char( char buffer );
@@ -56,64 +75,71 @@ void wait_for_sending_to_finish( void )
 
 int main()
 {
-    unsigned int i, j, k;
+    signed int Pr, Pm, Vm, T, Kp, Kd;
+    unsigned int Pr_status, Pm_status, Vm_status, T_status, Kp_status, Kd_status;
     char buffer[BUFFER_SIZE];
 
-    i = j = k = 0;
+    unsigned int direction = 1;
+    unsigned int speed = MOTOR_SPEED_INIT;
+
+    Pr = Pm = Vm = T=  Kp = Kd = 0;
 
     clear();
 
 	play_from_program_space(PSTR(">g32>>c32"));  // Play welcoming notes.
 
-
     serial_set_baud_rate(USB_COMM, USB_BAUD_RATE);
+
+    // Initialize the encoders and specify the four input pins, first two are for motor 1, second two are for motor 2
+    encoders_init( PIN_ENCODER_1A, PIN_ENCODER_1B, PIN_ENCODER_2A, PIN_ENCODER_2B );
 
 	while(1)
 	{
-        /*
-		// Get battery voltage (in mV) from the auxiliary processor
-		// and print it on the the LCD.
-		clear();
-		print_long(read_battery_millivolts_svp());
+        // Count inputs
+        Pm        = encoders_get_counts_m2();
+        Pm_status = encoders_check_error_m2();
 
-		red_led(1);     // Turn on the red LED.
-		delay_ms(200);  // Wait for 200 ms.
+        if ( Pm < MOTOR_SPEED_MIN )
+        {
+            direction = 1;
+            speed = MOTOR_SPEED_MIN;
+        }
+        else
+        {
+            speed = Pm;
+            
+            if ( direction == 1 && Pm > 100)
+            {
+                direction = 0;
+            }
+            else if ( direction == 0 && Pm < 32 )
+            {
+                direction = 1;
+            }
+        }
 
-		red_led(0);     // Turn off the red LED.
-		delay_ms(200);  // Wait for 200 ms.
-        */
+        if ( direction == 1 )
+        {
+            T = speed;
+        }
+        else
+        {
+            T = -speed;
+        }
 
-        snprintf( buffer, BUFFER_SIZE, "%d,%d,%d,%d,%d,%d\r\n", i, j, k, i, i, i );
+        if ( T < -MOTOR_SPEED_MAX )
+            T = -MOTOR_SPEED_MAX;
+
+        if ( T > MOTOR_SPEED_MAX )
+            T = MOTOR_SPEED_MAX;
+
+        set_motors( 0, T );
+        Pr = 32;
+
+        snprintf( buffer, BUFFER_SIZE, "%d,%d,%d,%d,%d,%d\r\n", Pr, Pm, Vm, T, Kp, Kd );
 
         print_usb( buffer );
 
-        clear();
-
-//        red_led(1);     // Turn on the red LED.
-        delay_us( LOOP_DELAY_ACTUAL_US );
-
-//        red_led(0);     // Turn off the red LED.
-        delay_us( LOOP_DELAY_ACTUAL_US );
-
-        if ( i % 1 == 0 )
-        {
-            i++;
-            if ( i >= MAX_INT_OUTPUT )
-                i = 0;
-        }
-
-        if ( i % 2 == 0 )
-        {
-            j++;
-            if ( j >= MAX_INT_OUTPUT )
-                j = 0;
-        }
-
-        if ( i % 3 == 0 )
-        {
-            k++;
-            if ( k >= MAX_INT_OUTPUT )
-                k= 0;
-        }
+        delay_us( LOOP_DELAY_US );
 	}
 }
