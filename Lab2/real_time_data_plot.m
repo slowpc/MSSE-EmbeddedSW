@@ -25,6 +25,10 @@ function real_time_data_plot
     COM_PORT = 'COM7';
     BAUD_RATE = 256000;
     MEM_PREALLOCATE = 100000;
+    GUI_REFRESH_MS_DEFAULT = 100;
+    GUI_REFRESH_MS_MIN = 100;
+    GUI_REFRESH_MS_MAX = 1000;
+    MS_PER_S = 1000;
     
     %% Preallocate variables to graph
     curX  = nan(1, MEM_PREALLOCATE);
@@ -36,11 +40,19 @@ function real_time_data_plot
     curVm = nan(1, MEM_PREALLOCATE);
     curKd = nan(1, MEM_PREALLOCATE);
 
+    lastKp = 0;
+    lastPr = 0;
+    lastPm = 0;
+    lastT  = 0;
+    lastVm = 0;
+    lastKd = 0;
+    lastPe = 0;
+
     %% Set up the figure window
     figureHandle = figure('NumberTitle','off',...
         'Position', [150, 75, 1500, 900], ...
         'Name','PD outputs',...
-        'Visible','on');
+        'Visible','off');
 
     % Set axes
     axesPe = subplot(3,2,1, 'Parent', figureHandle);
@@ -169,6 +181,7 @@ function real_time_data_plot
         'String', 'Pe', ...
         'Position', [valueWidth cumTextHeight textWidth textHeight]);
     cumTextHeight = cumTextHeight + textHeight;
+    
 
     %% Values
     cumValueHeight = cumButtonHeight;
@@ -207,6 +220,110 @@ function real_time_data_plot
         'Enable', 'off', ...
         'Position', [0 cumValueHeight valueWidth valueHeight]);
     cumValueHeight = cumValueHeight + valueHeight;
+    
+    %% Plotting timer
+    timerPlot = timer('TimerFcn', @updateGraph, 'Period', 1.0/8, 'ExecutionMode', 'fixedRate');
+    
+    function updateGraph(obj, event)
+%                 set(plotPe,'YData',curPe,'XData',curX);
+%                 set(plotKp,'YData',curKp,'XData',curX);
+%                 set(plotPm,'YData',curPm,'XData',curX);
+%                 set(plotPr,'YData',curPr,'XData',curX);
+                set(plotT, 'YData',curT, 'XData',curX);
+                set(plotVm,'YData',curVm,'XData',curX);
+                set(plotKd,'YData',curKd,'XData',curX);
+
+                set(axesPe,'NextPlot','replacechildren');
+                plot(axesPe, curX, curPe, 'b');
+                set(axesKp,'NextPlot','replacechildren');
+                plot(axesKp, curX, curKp, 'b');
+%                 plotKp = plot(axesKp, curX, curKp);
+                set(axesP,'NextPlot','replacechildren');
+%                 plotPr = plot(axesP,  curX, curPr);
+%                 hold on
+%                 plotPm = plot(axesP,  curX, curPm);
+%                 plotPrPm = plot(axesP,  [curX curX], [curPr curPm]);
+                plot(axesP,  curX, curPr, 'r', curX, curPm, 'b');
+%                 plotT  = plot(axesT,  curX, curT);
+%                 plotVm = plot(axesV,  curX, curVm);
+%                 plotKd = plot(axesKd, curX, curKd);
+
+                set(PeValue, 'String', lastPe);
+                set(KpValue, 'String', lastKp);
+                set(PrValue, 'String', lastPr);
+                set(PmValue, 'String', lastPm);
+                set(TValue,  'String', lastT);
+                set(VmValue, 'String', lastVm);
+                set(KdValue, 'String', lastKd);
+
+%                 set(figureHandle,'Visible','on');
+                drawnow;
+    end
+
+    %% GUI refresh
+
+    cumXpos = 200;
+    
+    xWidthText = 75;
+    uicontrol( figureHandle, ...
+        'Style', 'text', ...
+        'String', 'GUI Refresh', ...
+        'Position', [cumXpos 0 xWidthText valueHeight]);
+    cumXpos = cumXpos + xWidthText + 10;
+
+    xWidthSlider = 200;
+    GUIRefreshSlider = uicontrol( figureHandle, ...
+        'Style', 'slider', ...
+        'Min', 0,...
+        'Max', GUI_REFRESH_MS_MAX,...
+        'Value', GUI_REFRESH_MS_DEFAULT,...
+        'SliderStep',[0.025 0.1],...
+        'Callback', @updateGUIRefresh,...
+        'Position', [cumXpos 0 xWidthSlider valueHeight]);
+    cumXpos = cumXpos + xWidthSlider + 5;
+
+    xWidthTextBox = 50;
+    GUIRefreshText = uicontrol( figureHandle, ...
+        'Style', 'edit', ...
+        'String', GUI_REFRESH_MS_DEFAULT,...
+        'Callback', @updateGUIRefresh,...
+        'Position', [cumXpos 0 xWidthTextBox valueHeight]);
+    cumXpos = cumXpos + xWidthTextBox;
+
+    function updateGUIRefresh(obj, event, valRaw)
+        style = get(obj, 'Style');
+        isSlider = strcmpi(style, 'slider');
+        
+        % Check where to get the data from
+        if ( isSlider )
+            valRaw = get(obj, 'Value');
+        else
+            valRaw = str2double(get(obj,'String'));
+            
+            % Check if it is actually a number
+            if ( ~isnumeric(valRaw) || isnan(valRaw) )
+                valRaw = GUI_REFRESH_MS_DEFAULT;
+            end
+        end
+ 
+        if (valRaw < GUI_REFRESH_MS_MIN)
+            valRaw = GUI_REFRESH_MS_MIN;
+        end
+        if (valRaw > GUI_REFRESH_MS_MAX)
+            valRaw = GUI_REFRESH_MS_MAX;
+        end
+        valRounded = round(valRaw);
+        val = valRounded / MS_PER_S;
+
+        stop(timerPlot);
+        set(timerPlot, 'Period', val);
+        start(timerPlot);
+
+        set(GUIRefreshSlider, 'Value', valRounded);
+        set(GUIRefreshText, 'String', num2str(valRounded));
+
+        drawnow
+    end
 
     %% Setup the serial port
     com = serial(COM_PORT);
@@ -218,7 +335,9 @@ function real_time_data_plot
     enableLoop = 1;
     clearReq = 1;
     tick = 1;
-    
+    set(figureHandle, 'Visible','on');
+    start( timerPlot );
+
     %% Collect data 
     while ( enableLoop == 1 )
             %% Conditionally clear the graph array contents
@@ -260,48 +379,57 @@ function real_time_data_plot
             
             %% Conditionally update the GUI
             % This should probably be done in a timer callback instead of here
-            if ( mod(tick,8) == 0 )
-                set(plotPe,'YData',curPe,'XData',curX);
-                set(plotKp,'YData',curKp,'XData',curX);
-%                 set(plotPm,'YData',curPm,'XData',curX);
-%                 set(plotPr,'YData',curPr,'XData',curX);
-                set(plotT, 'YData',curT, 'XData',curX);
-                set(plotVm,'YData',curVm,'XData',curX);
-                set(plotKd,'YData',curKd,'XData',curX);
-
-%                 plotPe = plot(axesPe, curX, curPe);
-%                 plotKp = plot(axesKp, curX, curKp);
-                set(axesP,'NextPlot','replacechildren');
-%                 plotPr = plot(axesP,  curX, curPr);
-%                 hold on
-%                 plotPm = plot(axesP,  curX, curPm);
-%                 plotPrPm = plot(axesP,  [curX curX], [curPr curPm]);
-                plotPrPm = plot(axesP,  curX, curPr, 'r', curX, curPm, 'b');
-%                 plotT  = plot(axesT,  curX, curT);
-%                 plotVm = plot(axesV,  curX, curVm);
-%                 plotKd = plot(axesKd, curX, curKd);
-
-                set(PeValue, 'String', lastPe);
-                set(KpValue, 'String', lastKp);
-                set(PrValue, 'String', lastPr);
-                set(PmValue, 'String', lastPm);
-                set(TValue,  'String', lastT);
-                set(VmValue, 'String', lastVm);
-                set(KdValue, 'String', lastKd);
-
-                set(figureHandle,'Visible','on');
+%             if ( mod(tick,8) == 0 )
+% %                 set(plotPe,'YData',curPe,'XData',curX);
+% %                 set(plotKp,'YData',curKp,'XData',curX);
+% %                 set(plotPm,'YData',curPm,'XData',curX);
+% %                 set(plotPr,'YData',curPr,'XData',curX);
+%                 set(plotT, 'YData',curT, 'XData',curX);
+%                 set(plotVm,'YData',curVm,'XData',curX);
+%                 set(plotKd,'YData',curKd,'XData',curX);
+% 
+%                 set(axesPe,'NextPlot','replacechildren');
+%                 plot(axesPe, curX, curPe, 'b');
+%                 set(axesKp,'NextPlot','replacechildren');
+%                 plot(axesKp, curX, curKp, 'b');
+% %                 plotKp = plot(axesKp, curX, curKp);
+%                 set(axesP,'NextPlot','replacechildren');
+% %                 plotPr = plot(axesP,  curX, curPr);
+% %                 hold on
+% %                 plotPm = plot(axesP,  curX, curPm);
+% %                 plotPrPm = plot(axesP,  [curX curX], [curPr curPm]);
+%                 plot(axesP,  curX, curPr, 'r', curX, curPm, 'b');
+% %                 plotT  = plot(axesT,  curX, curT);
+% %                 plotVm = plot(axesV,  curX, curVm);
+% %                 plotKd = plot(axesKd, curX, curKd);
+% 
+%                 set(PeValue, 'String', lastPe);
+%                 set(KpValue, 'String', lastKp);
+%                 set(PrValue, 'String', lastPr);
+%                 set(PmValue, 'String', lastPm);
+%                 set(TValue,  'String', lastT);
+%                 set(VmValue, 'String', lastVm);
+%                 set(KdValue, 'String', lastKd);
+% 
+% %                 set(figureHandle,'Visible','on');
 %                 drawnow;
-            end
+%             end
             
             tick = tick + 1;
     end
     
-    %% Clean up the serial object
+    %% Clean up
+    
+    % COM ports
     fclose(com);
     delete(com);
     clear com;
     
-    %% Clean up the figure
+    % Figures
     close(figureHandle);
+    
+    % Timers
+    stop(timerPlot);
+    delete(timerPlot);
     
 end
