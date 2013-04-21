@@ -114,17 +114,8 @@ function real_time_data_plot
     cumButtonHeight = cumButtonHeight + buttonHeight;
     
     function stopReading(hObj,event)
-        % COM ports
-        fclose(com);
-        delete(com);
-        clear com;
-
-        % Figures
-        close(figureHandle);
-
-        % Timers
-        stop(timerPlot);
-        delete(timerPlot);
+        enableLoop = 0;
+        
     end
     
     function clearGraph(hObj,event)
@@ -217,10 +208,8 @@ function real_time_data_plot
         'Position', [0 cumValueHeight valueWidth valueHeight]);
     cumValueHeight = cumValueHeight + valueHeight;
     
-    %% Plotting timer
-    timerPlot = timer('TimerFcn', @updateGraph, 'Period', 1.0/8, 'ExecutionMode', 'fixedRate');
-    
-    function updateGraph(obj, event)
+    %% Update all the graphs    
+    function updateGraph()
         % Update graphs
         set(axesPe,'NextPlot','replacechildren');
         plot(axesPe, curX, curPe, 'b');
@@ -264,7 +253,7 @@ function real_time_data_plot
         'Min', 0,...
         'Max', GUI_REFRESH_MS_MAX,...
         'Value', GUI_REFRESH_MS_DEFAULT,...
-        'SliderStep',[0.025 0.1],...
+        'SliderStep',[0.01 0.1],...
         'Callback', @updateGUIRefresh,...
         'Position', [cumXpos 0 xWidthSlider valueHeight]);
     cumXpos = cumXpos + xWidthSlider + 5;
@@ -302,10 +291,6 @@ function real_time_data_plot
         valRounded = round(valRaw);
         val = valRounded / MS_PER_S;
 
-        stop(timerPlot);
-        set(timerPlot, 'Period', val);
-        start(timerPlot);
-
         set(GUIRefreshSlider, 'Value', valRounded);
         set(GUIRefreshText, 'String', num2str(valRounded));
 
@@ -321,9 +306,16 @@ function real_time_data_plot
     fopen(com);
     
     %% Initialization before collecting data
+    
+    % Update the graphs at a minimum period (in case the background task
+    % never gets executed
+    timerPlot = timer('TimerFcn', @updateGraph, 'Period', 1.0, 'ExecutionMode', 'fixedRate');
+    start(timerPlot);
+    
+    % Other stuff to initialize
+    enableLoop = 1;
     tick = 1;
     set(figureHandle, 'Visible','on');
-    start( timerPlot );
     
     %% Setup callbacks for receiving data
     set(com, 'BytesAvailableFcnMode', 'terminator');
@@ -355,4 +347,21 @@ function real_time_data_plot
             tick = tick + 1;
         end
     end
+
+    while ( enableLoop )
+        % Update graphs
+        updateGraph();
+    end
+    
+    % COM ports
+    fclose(com);
+    delete(com);
+    clear com;
+
+    % Figures
+    close(figureHandle);
+
+    % Timers
+    stop(timerPlot);
+    delete(timerPlot);
 end
