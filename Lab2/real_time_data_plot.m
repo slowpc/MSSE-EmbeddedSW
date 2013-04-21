@@ -114,11 +114,30 @@ function real_time_data_plot
     cumButtonHeight = cumButtonHeight + buttonHeight;
     
     function stopReading(hObj,event)
-        enableLoop = 0;
+        % COM ports
+        fclose(com);
+        delete(com);
+        clear com;
+
+        % Figures
+        close(figureHandle);
+
+        % Timers
+        stop(timerPlot);
+        delete(timerPlot);
     end
     
     function clearGraph(hObj,event)
-        clearReq = 1;
+        %% Clear the graph array contents
+        tick  = 1;
+        curX  = nan(1, MEM_PREALLOCATE);
+        curPe = nan(1, MEM_PREALLOCATE);
+        curKp = nan(1, MEM_PREALLOCATE);
+        curPr = nan(1, MEM_PREALLOCATE);
+        curPm = nan(1, MEM_PREALLOCATE);
+        curT  = nan(1, MEM_PREALLOCATE);
+        curVm = nan(1, MEM_PREALLOCATE);
+        curKd = nan(1, MEM_PREALLOCATE);
     end
 
     %% Texts
@@ -302,8 +321,6 @@ function real_time_data_plot
     fopen(com);
     
     %% Initialization before collecting data
-    enableLoop = 1;
-    clearReq = 1;
     tick = 1;
     set(figureHandle, 'Visible','on');
     start( timerPlot );
@@ -311,7 +328,7 @@ function real_time_data_plot
     %% Setup callbacks for receiving data
     set(com, 'BytesAvailableFcnMode', 'terminator');
     set(com, 'BytesAvailableFcn', @newCOMData);
-    
+
     function newCOMData(obj, event)
         while ( obj.BytesAvailable )
             com_input = fscanf(obj,'%d,%d,%d,%d,%d,%d');
@@ -338,37 +355,4 @@ function real_time_data_plot
             tick = tick + 1;
         end
     end
-
-    %% Collect data 
-    while ( enableLoop == 1 )
-            %% Conditionally clear the graph array contents
-            if ( clearReq == 1)
-                clearReq = 0;
-
-                tick  = 1;
-                curX  = nan(1, MEM_PREALLOCATE);
-                curPe = nan(1, MEM_PREALLOCATE);
-                curKp = nan(1, MEM_PREALLOCATE);
-                curPr = nan(1, MEM_PREALLOCATE);
-                curPm = nan(1, MEM_PREALLOCATE);
-                curT  = nan(1, MEM_PREALLOCATE);
-                curVm = nan(1, MEM_PREALLOCATE);
-                curKd = nan(1, MEM_PREALLOCATE);
-            end
-    end
-    
-    %% Clean up
-    
-    % COM ports
-    fclose(com);
-    delete(com);
-    clear com;
-    
-    % Figures
-    close(figureHandle);
-    
-    % Timers
-    stop(timerPlot);
-    delete(timerPlot);
-    
 end
