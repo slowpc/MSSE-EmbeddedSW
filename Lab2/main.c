@@ -83,8 +83,7 @@ void wait_for_sending_to_finish( void )
 
 int main()
 {
-    signed int Pe, Pr, Pm, Vm, T;//, Kp, Kd;
-    float Kp, Kd;
+    signed int Pe, Pr, Pm, Vm, T, Kp, Kd;
     unsigned int Pr_status, Pm_status, Vm_status, T_status, Kp_status, Kd_status;
     char buffer[BUFFER_SIZE];
     
@@ -167,11 +166,9 @@ int main()
         set_motors( 0, T );
 
         // Dummy values for the time being
-        Kp = 10.0f;
-        Kd = -15.0f;
-        Kp_int = (signed int) Kp;
-        Kd_int = (signed int) Kd;
-        snprintf( buffer, BUFFER_SIZE, "%d,%d,%d,%d,%d,%d,%d\r\n", Pe, Pr, Pm, Vm, T, Kp_int, Kd_int );
+        Kp = 10;
+        Kd = -15;
+        snprintf( buffer, BUFFER_SIZE, "%d,%d,%d,%d,%d,%d,%d\r\n", Pe, Pr, Pm, Vm, T, Kp, Kd );
 
         print_usb( buffer );
 
