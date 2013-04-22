@@ -14,10 +14,13 @@
 #include <inttypes.h>
 #include <string.h>
 
-#define BUFFER_SIZE 32
+#define BUFFER_SIZE 64
 #define LOOP_DELAY_US 20000
 #define MAX_INT_OUTPUT 100
 #define USB_BAUD_RATE 256000
+
+// Velocity
+#define V_ITER_THRESH 10
 
 // Motor
 #define MOTOR_SPEED_INIT                50
@@ -79,6 +82,10 @@ int main()
     unsigned int Pr_status, Pm_status, Vm_status, T_status, Kp_status, Kd_status;
     char buffer[BUFFER_SIZE];
 
+    unsigned int v_iter = 0;
+    unsigned int v_iter_last_pos = 0;
+    unsigned int v_initialized = 0;
+
     unsigned int direction = 1;
     unsigned int speed = MOTOR_SPEED_INIT;
 
@@ -97,9 +104,17 @@ int main()
 
 	while(1)
 	{
-        // Count inputs
+        // Calc current position
         Pm        = encoders_get_counts_m2();
         Pm_status = encoders_check_error_m2();
+
+        // Calc velocity
+        if ( v_iter++ > V_ITER_THRESH )
+        {
+            v_iter = 0;
+            Vm = Pm - v_iter_last_pos;
+            v_iter_last_pos = Pm;
+        }
 
         if ( Pm < MOTOR_SPEED_MIN )
         {
@@ -138,6 +153,10 @@ int main()
             T = MOTOR_SPEED_MAX;
 
         set_motors( 0, T );
+
+        // Dummy values for the time being
+        Kp = 1;
+        Kd = 2;
 
         snprintf( buffer, BUFFER_SIZE, "%d,%d,%d,%d,%d,%d\r\n", Pr, Pm, Vm, T, Kp, Kd );
 
