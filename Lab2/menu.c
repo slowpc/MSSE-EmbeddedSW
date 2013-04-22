@@ -14,10 +14,11 @@ void set_red_period( int new_period );
 void set_green_period( int new_period );
 void set_yellow_period( int new_period );
 
-//#define ECHO2LCD
+#define ECHO2LCD
 
 // local "global" data structures
 char receive_buffer[32];
+char menuBuffer[32];
 unsigned char receive_buffer_position;
 char send_buffer[32];
 
@@ -45,13 +46,16 @@ void print_usb( char *buffer )
 void init_menu() {
 	
 	//char printBuffer[32];
-	
+
 	// Set the baud rate to 9600 bits per second.  Each byte takes ten bit
 	// times, so you can get at most 960 bytes per second at this speed.
 	serial_set_baud_rate(USB_COMM, 256000);
 
+    memset( menuBuffer, 0, sizeof(menuBuffer) );
+    memset( receive_buffer, 0, sizeof(receive_buffer) );
+
 	// Start receiving bytes in the ring buffer.
-//	serial_receive_ring(USB_COMM, receive_buffer, sizeof(receive_buffer));
+	serial_receive_ring(USB_COMM, receive_buffer, sizeof(receive_buffer));
 
 	//memcpy_P( send_buffer, PSTR("USB Serial Initialized\r\n"), 24 );
 	//snprintf( printBuffer, 24, "USB Serial Initialized\r\n");
@@ -67,18 +71,34 @@ void init_menu() {
 // has been received on USB_COMM and processes it accordingly.
 // The menu command is buffered in check_for_new_bytes_received (which calls this function).
 void process_received_string(const char* buffer)
-{/*
+{
 	// Used to pass to USB_COMM for serial communication
 	char tempBuffer[32];
 	
 	// parse and echo back to serial comm window (and optionally the LCD)
-	char color;
 	char op_char;
-	int value;
-	int parsed;
+    int parsed;
+    int new_value;
 
     cli();
 
+    print_usb("d,Received: ");
+    print_usb(buffer);
+
+    op_char -= 32*(buffer[0]>='a' && buffer[0]<='z');
+
+    switch (op_char)
+    {
+        case 'L':
+        case 'l':
+            parsed = sscanf(buffer, "%c,%d", op_char, new_value );
+            // TODO: call function to enable/disable logging outputs
+            break;
+        default :
+            break;
+    }
+
+/*
 	parsed = sscanf(buffer, "%c %c %d", &op_char, &color, &value);
 #ifdef ECHO2LCD
 	lcd_goto_xy(0,0);
@@ -187,8 +207,6 @@ void process_received_string(const char* buffer)
 		default:
 			print_usb( "Command does not compute.\r\n" );
 		} // end switch(op_char) 
-		
-	print_usb( MENU );
 */
     sei();
 
@@ -212,10 +230,9 @@ void check_for_new_bytes_received()
 	The menuBuffer is used to hold all keystrokes prior to the carriage return. The "received" variable, which indexes menuBuffer, is reset to 0
 	after each carriage return.
 	*/ 
-	char menuBuffer[32];
 	static int received = 0;
     int evaluate = 0;
-	
+
 	// while there are unprocessed keystrokes in the receive_buffer, grab them and buffer
 	// them into the menuBuffer
 	while(serial_get_received_bytes(USB_COMM) != receive_buffer_position)
@@ -223,14 +240,16 @@ void check_for_new_bytes_received()
 		// place in a buffer for processing
 		menuBuffer[received] = receive_buffer[receive_buffer_position];
 
+#ifdef ECHO_TO_COM
 print_usb_char( menuBuffer[received] );
+#endif
 
 #ifdef ECHO2LCD
 lcd_goto_xy(0,0);
-print("RX: (");
+print("RX:(");
 print_long(menuBuffer[received]);
 print_character(')');
-for (int i=0; i<received; i++)
+for (int i=0; i<(received+1); i++)
 {
     print_character(menuBuffer[i]);
 }
@@ -238,11 +257,13 @@ for (int i=0; i<received; i++)
 
         if ( menuBuffer[received] == '\r' )
         {
+#ifdef ECHO_TO_COM
             print_usb( "\n" );
+#endif
             evaluate = 1;
         }
 
-		++received;
+++received;
 		
 		// Increment receive_buffer_position, but wrap around when it gets to
 		// the end of the buffer. 
@@ -257,7 +278,7 @@ for (int i=0; i<received; i++)
 	}
 #ifdef ECHO2LCD
 		lcd_goto_xy(0,1);
-		print("RX: (");
+		print("RX:(");
 		print_long(received);
 		print_character(')');
 		for (int i=0; i<received; i++)
@@ -271,7 +292,7 @@ for (int i=0; i<received; i++)
 		menuBuffer[received] = '\0';
 #ifdef ECHO2LCD
 		lcd_goto_xy(0,1);
-		print("RX: (");
+		print("RX:(");
 		print_long(received);
 		print_character(')');
 		for (int i=0; i<received; i++)
@@ -281,6 +302,7 @@ for (int i=0; i<received; i++)
 #endif
 		process_received_string(menuBuffer);
 		received = 0;
+		memset( menuBuffer, 0, sizeof(menuBuffer) );
 	}
 }
 
