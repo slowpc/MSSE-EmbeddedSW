@@ -41,11 +41,11 @@ function real_time_data_plot
 
     % PD Controller
     KP_DEFAULT = 3.0;
-    KP_MIN = -30.0;
-    KP_MAX = 30.0;
+    KP_MIN = -15.0;
+    KP_MAX = 15.0;
     KD_DEFAULT = -3.0;
-    KD_MIN = -30.0;
-    KD_MAX = 30.0;
+    KD_MIN = -15.0;
+    KD_MAX = 15.0;
     
     %% Preallocate variables to graph
     curX  = nan(1, MEM_PREALLOCATE);
@@ -282,7 +282,7 @@ function real_time_data_plot
         'Min', KD_MIN,...
         'Max', KD_MAX,...
         'Value', KD_DEFAULT,...
-        'SliderStep',[0.01 0.1],...
+        'SliderStep',[0.005 0.05],...
         'Callback', @updateKd,...
         'Position', [cumXpos 0 xWidthSlider valueHeight]);
     cumXpos = cumXpos + xWidthSlider + 5;
@@ -345,7 +345,7 @@ function real_time_data_plot
         'Min', KP_MIN,...
         'Max', KP_MAX,...
         'Value', KP_DEFAULT,...
-        'SliderStep',[0.01 0.1],...
+        'SliderStep',[0.005 0.05],...
         'Callback', @updateKp,...
         'Position', [cumXpos valueHeight xWidthSlider valueHeight]);
     cumXpos = cumXpos + xWidthSlider + 5;
@@ -395,7 +395,7 @@ function real_time_data_plot
         drawnow
     end
 
-    %% En
+    %% Enable unit outputs
     cumXpos = 200;
     checkHeight = 50;
     xWidthCheck = 200;
@@ -416,6 +416,45 @@ function real_time_data_plot
         outputStr = sprintf([COM_ICD_LOGGING checkedToString]);
         disp( [ 'Sending: ' outputStr ] );
         fprintf(com, outputStr);
+    end
+
+    %% Set unit reference
+    cumXpos = 550;
+
+    for deg = [-720, 720, -360, 360, -180, 180, -90, 90 ]
+        uicontrol( figureHandle, ...
+            'Style', 'pushbutton', ...
+            'String', [num2str(deg) ' Deg'],...
+            'Callback', {@updateReference, deg},...
+            'Position', [cumXpos 0 buttonWidth buttonHeight]);
+        cumXpos = cumXpos + buttonWidth + 5;
+    end
+    
+    refValue = uicontrol( figureHandle, ...
+        'Style', 'edit', ...
+        'String', 0,...
+        'Callback', @updateReferenceButton,...
+        'Position', [cumXpos 0 buttonWidth buttonHeight]);
+    cumXpos = cumXpos + buttonWidth + 5;
+
+    % Callback
+    function updateReference(obj, event, value)
+        refToString = num2str(value);
+        outputStr = sprintf([COM_ICD_REFERENCE refToString]);
+        disp( [ 'Sending: ' outputStr ] );
+        fprintf(com, outputStr);
+    end
+    function updateReferenceButton(obj, event)
+        valRaw = str2double(get(obj,'String'));
+
+        % Check if it is actually a number
+        if ( ~isnumeric(valRaw) || isnan(valRaw) )
+            valRaw = 0;
+        end
+        
+        updateReference(obj, event, valRaw);
+
+        set(obj, 'String', valRaw);
     end
 
     %% Setup the serial port
