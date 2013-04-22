@@ -31,7 +31,10 @@ function real_time_data_plot
     % TODO
     
     % COM Tx ICD
-    COM_ICD_LOGGING = 'L,';
+    COM_ICD_LOGGING   = 'L,';
+    COM_ICD_KD        = 'D,';
+    COM_ICD_KP        = 'P,';
+    COM_ICD_REFERENCE = 'R,';
 
     % General
     MEM_PREALLOCATE = 100000;
@@ -318,7 +321,10 @@ function real_time_data_plot
             end
         end
 
-        disp(val);
+        valInt = int32(val*1000.0);
+        outputStr = sprintf([COM_ICD_KD num2str(valInt)]);
+        disp( [ 'Sending: ' outputStr ] );
+        fprintf(com, outputStr);
         
         set(GUISliderKd, 'Value', val);
         set(GUITextKd, 'String', num2str(val));
@@ -378,7 +384,10 @@ function real_time_data_plot
             end
         end
 
-        disp(val);
+        valInt = int32(val*1000.0);
+        outputStr = sprintf([COM_ICD_KP num2str(valInt)]);
+        disp( [ 'Sending: ' outputStr ] );
+        fprintf(com, outputStr);
 
         set(GUISliderKp, 'Value', val);
         set(GUITextKp, 'String', num2str(val));
@@ -389,12 +398,6 @@ function real_time_data_plot
     %% En
     cumXpos = 200;
     checkHeight = 50;
-%     uicontrol( figureHandle, ...
-%         'Style', 'text', ...
-%         'String', 'Enable Logging', ...
-%         'Position', [cumXpos checkHeight (xWidthText+25) valueHeight]);
-%     cumXpos = cumXpos + (xWidthText+25) + 10;
-
     xWidthCheck = 200;
     GUICheckLogging = uicontrol( figureHandle, ...
         'Style', 'checkbox', ...
@@ -455,8 +458,8 @@ function real_time_data_plot
         lastPm = com_input(4);
         lastVm = com_input(5);
         lastT  = com_input(6);
-        lastKp = com_input(7);
-        lastKd = com_input(8);
+        lastKp = com_input(7)/1000.0;
+        lastKd = com_input(8)/1000.0;
 
         % Add to the graph arrays
         curPe(tick) = lastPe;

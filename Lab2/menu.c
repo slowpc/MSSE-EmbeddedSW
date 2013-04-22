@@ -4,7 +4,10 @@
 #include <inttypes.h>
 #include <string.h>
 
-void set_logging( int new_value );
+void set_logging( int );
+void set_Pr( float );
+void set_Kp( float );
+void set_Kd( float );
 
 #define ECHO2LCD
 
@@ -72,28 +75,68 @@ void process_received_string(const char* buffer)
 	// parse and echo back to serial comm window (and optionally the LCD)
 	char op_char;
     int parsed;
-    int new_value;
+    int new_int;
+    float new_float;
+    int buf_size;
+    int bad_input;
+
+    buf_size = strlen( buffer );
 
     memset( tempBuffer, 0, sizeof(tempBuffer) );
 
-    cli();
+cli();
 
-    sprintf(tempBuffer, "d,Received:%s", buffer);
-    print_usb(tempBuffer);
+    sprintf( tempBuffer, "d,Received:%s\n", buffer );
+    print_usb( tempBuffer );
 
-    op_char = buffer[0];
-    op_char -= 32*(op_char>='a' && op_char<='z');
-
-    switch (op_char)
+    bad_input = 0;
+    if ( buf_size < 3 )
     {
-        case 'L':
-        case 'l':
-            new_value = buffer[2]-'0';
-            set_logging( new_value );
-            break;
-        default :
-            print_usb("d,Entered default case for op code\n");
-            break;
+        bad_input = 1;
+        sprintf( tempBuffer, "d,Buffer size less than 3 (%d)\r\n", buf_size );
+        print_usb( tempBuffer);
+    }
+    else if ( buffer[1] != ',' )
+    {
+        bad_input = 1;
+        sprintf( tempBuffer, "d,Second character not a comma\r\n" );
+        print_usb( tempBuffer );
+    }
+
+    if ( bad_input == 0 )
+    {
+        op_char = buffer[0];
+        op_char -= 32*(op_char>='a' && op_char<='z');
+
+        switch (op_char)
+        {
+            case 'L':
+            case 'l':
+                parsed = sscanf( buffer, "%c,%d", &op_char, &new_int );
+                set_logging( new_int );
+                break;
+            case 'D':
+            case 'd':
+                parsed = sscanf( buffer, "%c,%d", &op_char, &new_int );
+                new_float = new_int / 1000.0f;
+                set_Kd( new_float );
+                break;
+            case 'P':
+            case 'p':
+                parsed = sscanf( buffer, "%c,%d", &op_char, &new_int );
+                new_float = new_int / 1000.0f;
+                set_Kp( new_float );
+                break;
+            case 'R':
+            case 'r':
+                parsed = sscanf( buffer, "%c,%d", &op_char, &new_int );
+                new_float = new_int / 1000.0f;
+                set_Pr( new_float );
+                break;
+            default :
+                print_usb( "d,Entered default case for op code\n" );
+                break;
+        }
     }
 
 /*
@@ -281,8 +324,6 @@ for (int i=0; i<(received+1); i++)
 
 	// If there were keystrokes processed, check if a menu command
 	if ( evaluate ) {
-		// Process buffer: terminate string, process, reset index to beginning of array to receive another command
-		menuBuffer[received] = '\0';
 #ifdef ECHO2LCD
 		lcd_goto_xy(0,1);
 		print("RX:(");
@@ -293,6 +334,9 @@ for (int i=0; i<(received+1); i++)
 			print_character(menuBuffer[i]);
 		}
 #endif
+		// Process buffer: terminate string, process, reset index to beginning of array to receive another command, removing terminators
+		menuBuffer[received-1] = '\0';
+
 		process_received_string(menuBuffer);
 		received = 0;
 		memset( menuBuffer, 0, sizeof(menuBuffer) );

@@ -14,7 +14,7 @@
 #include <inttypes.h>
 #include <string.h>
 
-//#include "menu.h"
+#include "menu.h"
 
 #define BUFFER_SIZE 64
 #define LOOP_DELAY_MS 50
@@ -41,16 +41,16 @@
 
 
 static int send_outputs;
+static float Pr, Kp, Kd;
 
 int main()
 {
     signed int Pm_count;
-    float Pe, Pr, Pm, Vm, T, Kp, Kd;
+    float Pe, Pm, Vm, T;
     char buffer[BUFFER_SIZE];
 
     unsigned int v_iter = 0;
     unsigned int v_iter_last_pos = 0;
-    unsigned int v_initialized = 0;
     
     unsigned int speed, direction;
 
@@ -130,7 +130,7 @@ int main()
         T_temp = ( direction == 1 ) ? speed : -speed;
         set_motors( 0, T_temp );
 
-        snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe, (signed int)Pr, (signed int)Pm, (signed int)Vm, (signed int)T_temp, (signed int)Kp, (signed int)Kd );
+        snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe, (signed int)Pr, (signed int)Pm, (signed int)Vm, (signed int)T_temp, (signed int)(Kp*1000), (signed int)(Kd*1000) );
 
         if ( send_outputs == 1 )
         {
@@ -147,7 +147,19 @@ int main()
 void set_logging( int new_value )
 {
     send_outputs = new_value;
-    print_usb("d,set_logging:");
-    print_usb_char('0'+new_value);
-    print_usb_char('\n');
+}
+
+void set_Pr( float new_ref )
+{
+    Pr += new_ref;
+}
+
+void set_Kp( float new_Kp )
+{
+    Kp = new_Kp;
+}
+
+void set_Kd( float new_Kd )
+{
+    Kd = new_Kd;
 }
