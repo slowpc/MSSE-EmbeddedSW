@@ -130,7 +130,7 @@ cli();
             case 'R':
             case 'r':
                 parsed = sscanf( buffer, "%c,%d", &op_char, &new_int );
-                new_float = new_int / 1000.0f;
+                new_float = new_int *1.0f;
                 set_Pr( new_float );
                 break;
             default :
