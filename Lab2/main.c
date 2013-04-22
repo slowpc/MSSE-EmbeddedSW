@@ -17,21 +17,21 @@
 #include "menu.h"
 
 #define BUFFER_SIZE 64
-#define LOOP_DELAY_MS 50
+#define LOOP_DELAY_MS 9
 #define MAX_INT_OUTPUT 100
 #define USB_BAUD_RATE 256000
 
 // Position
 #define DEG_PER_COUNT (360.0f / 64.0f)
-#define POSITION_ERROR_MIN 10
-#define POSITION_ERROR_MAX 45
+#define POSITION_ERROR_MIN 1
+#define POSITION_ERROR_MAX 64
 
 // Velocity
 #define V_ITER_THRESH 15
 
 // Motor
-#define MOTOR_SPEED_MIN                 20
-#define MOTOR_SPEED_MAX                 100
+#define MOTOR_SPEED_MIN                 25
+#define MOTOR_SPEED_MAX                 175
 
 // Encoder pin mapping
 #define PIN_ENCODER_1A                  IO_A2
@@ -41,12 +41,11 @@
 
 
 static int send_outputs;
-static float Pr, Kp, Kd;
+static float Pr_f, Kp_f, Kd_f;
 
 int main()
 {
-    signed int Pm_count;
-    float Pe, Pm, Vm, T;
+    int Pe_int, Pm_int, Pr_int, Vm_int, T_int;
     char buffer[BUFFER_SIZE];
 
     unsigned int v_iter = 0;
@@ -54,7 +53,8 @@ int main()
     
     unsigned int speed, direction;
 
-    Pe = Pr = Pm = Vm = T=  Kp = Kd = 0;
+    Pe_int = Pm_int = Pr_int = Vm_int = T_int = 0;
+    Pr_f = Kp_f = Kd_f = 0.0f;
 
     send_outputs = 1;
 
@@ -69,27 +69,27 @@ int main()
     encoders_init( PIN_ENCODER_1A, PIN_ENCODER_1B, PIN_ENCODER_2A, PIN_ENCODER_2B );
 
     // Dummy values for the time being
-    Pr = 360;
-    Kp = 0.05f;
-    Kd = -.05f;
+    Pr_f = 0.0f;
+    Kp_f = 4.3f;
+    Kd_f = -4.85f;
 
 	while(1)
 	{
+clear();
         // Calc current position
-        Pm_count  = encoders_get_counts_m2();
-
-        Pm = Pm_count * DEG_PER_COUNT;
+        Pm_int  = encoders_get_counts_m2();
 
         // Calc velocity
         if ( v_iter++ > V_ITER_THRESH )
         {
             v_iter = 0;
-            Vm = Pm - v_iter_last_pos;
-            v_iter_last_pos = Pm;
+            Vm_int = Pm_int - v_iter_last_pos;
+            v_iter_last_pos = Pm_int;
         }
 
         // Calculate the position error
-        Pe = Pr - Pm;
+        Pr_int = (int)(Pr_f  / DEG_PER_COUNT);
+        Pe_int = Pr_int - Pm_int;
 
         if ( Pe > POSITION_ERROR_MAX )
             Pe = POSITION_ERROR_MAX;
@@ -97,19 +97,17 @@ int main()
         if ( Pe < -POSITION_ERROR_MAX )
             Pe = -POSITION_ERROR_MAX;
 
-
         // Torque
-        T = Kp * Pe - Kd * Vm;
+        float t1_f = Kp_f * Pe_int;
+        float t2_f = Kd_f * Vm_int;
+        T_int = (int)(t1_f - t2_f);
 
-        
+        if ( T_int < -MOTOR_SPEED_MAX )
+            T_int = -MOTOR_SPEED_MAX;
 
-
-        if ( T < -MOTOR_SPEED_MAX )
-            T = -MOTOR_SPEED_MAX;
-
-        if ( T > MOTOR_SPEED_MAX )
-            T = MOTOR_SPEED_MAX;
-
+        if ( T_int > MOTOR_SPEED_MAX )
+            T_int = MOTOR_SPEED_MAX;
+/*
         if ( T < 0 )
         {
             speed = -T;
@@ -120,17 +118,22 @@ int main()
             speed = T;
             direction = 1;
         }
-
+    signed int Pe_abs = (Pe > 0) ? Pe : -Pe ;
         // Force the motor to the minimum amount if it hasn't reached the goal yet
-        if (abs(Pe) > POSITION_ERROR_MIN && speed < MOTOR_SPEED_MIN )
+        if (Pe_abs > POSITION_ERROR_MIN && speed < MOTOR_SPEED_MIN )
             speed = MOTOR_SPEED_MIN;
 
-        // TODO: Replace with setting registers
-        signed int T_temp;
-        T_temp = ( direction == 1 ) ? speed : -speed;
-        set_motors( 0, T_temp );
+        if (Pe_abs <= POSITION_ERROR_MIN)
+            speed = 0;
 
-        snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe, (signed int)Pr, (signed int)Pm, (signed int)Vm, (signed int)T_temp, (signed int)(Kp*1000), (signed int)(Kd*1000) );
+        // TODO: Replace with setting registers
+//        signed int T_temp;
+//        T_temp = ( direction == 1 ) ? speed : -speed;
+//        set_motors( 0, T_temp );*/
+
+set_motors( 0, T_int );
+
+        snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe_int, (signed int)Pr_int, (signed int)Pm_int, (signed int)Vm_int, (signed int)T_int, (signed int)(Kp_f*1000), (signed int)(Kd_f*1000) );
 
         if ( send_outputs == 1 )
         {
@@ -151,15 +154,15 @@ void set_logging( int new_value )
 
 void set_Pr( float new_ref )
 {
-    Pr += new_ref;
+    Pr_f += new_ref;
 }
 
 void set_Kp( float new_Kp )
 {
-    Kp = new_Kp;
+    Kp_f = new_Kp;
 }
 
 void set_Kd( float new_Kd )
 {
-    Kd = new_Kd;
+    Kd_f = new_Kd;
 }
