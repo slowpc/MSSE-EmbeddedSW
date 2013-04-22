@@ -26,6 +26,12 @@ function real_time_data_plot
     % COM
     COM_PORT = 'COM7';
     BAUD_RATE = 256000;
+    
+    % COM Rx ICD
+    % TODO
+    
+    % COM Tx ICD
+    COM_ICD_LOGGING = 'L,';
 
     % General
     MEM_PREALLOCATE = 100000;
@@ -380,6 +386,35 @@ function real_time_data_plot
         drawnow
     end
 
+    %% En
+    cumXpos = 200;
+    checkHeight = 50;
+%     uicontrol( figureHandle, ...
+%         'Style', 'text', ...
+%         'String', 'Enable Logging', ...
+%         'Position', [cumXpos checkHeight (xWidthText+25) valueHeight]);
+%     cumXpos = cumXpos + (xWidthText+25) + 10;
+
+    xWidthCheck = 200;
+    GUICheckLogging = uicontrol( figureHandle, ...
+        'Style', 'checkbox', ...
+        'String', 'Enable Unit Outputs',...
+        'Min', 0,...
+        'Max', 1,...
+        'Value', 1,...
+        'Callback', @updateLogging,...
+        'Position', [cumXpos checkHeight xWidthCheck valueHeight]);
+    cumXpos = cumXpos + xWidthCheck + 5;
+
+    % Callback
+    function updateLogging(obj, event)
+        logChecked = get(obj, 'Value');
+        checkedToString = num2str(logChecked);
+        outputStr = sprintf([COM_ICD_LOGGING checkedToString]);
+        disp( [ 'Sending: ' outputStr ] );
+        fprintf(com, outputStr);
+    end
+
     %% Setup the serial port
     
     % Open ther COM port
@@ -398,28 +433,40 @@ function real_time_data_plot
 
     function newCOMData(obj, event)
         while ( obj.BytesAvailable )
-            com_input = fscanf(obj,'%d,%d,%d,%d,%d,%d,%d');
-
-            % Parse the data
-            curX(tick) = tick;
-            lastPe = com_input(1);
-            lastPr = com_input(2);
-            lastPm = com_input(3);
-            lastVm = com_input(4);
-            lastT  = com_input(5);
-            lastKp = com_input(6);
-            lastKd = com_input(7);
-
-            % Add to the graph arrays
-            curPe(tick) = lastPe;
-            curKp(tick) = lastKp;
-            curPr(tick) = lastPr;
-            curPm(tick) = lastPm;
-            curT(tick)  = lastT;
-            curVm(tick) = lastVm;
-            curKd(tick) = lastKd;
-
-            tick = tick + 1;
+            comInputLine = fgetl( obj );
+            
+            if ( comInputLine(1) == 'd' )
+                disp( comInputLine );
+            else if ( comInputLine(1) == 'v' )
+                    processValues( comInputLine );
+                end
+            end
+            
         end
+    end
+    
+    function processValues(str)
+        com_input = sscanf(str,'%c,%d,%d,%d,%d,%d,%d,%d');
+
+        % Parse the data
+        curX(tick) = tick;
+        lastPe = com_input(2);
+        lastPr = com_input(3);
+        lastPm = com_input(4);
+        lastVm = com_input(5);
+        lastT  = com_input(6);
+        lastKp = com_input(7);
+        lastKd = com_input(8);
+
+        % Add to the graph arrays
+        curPe(tick) = lastPe;
+        curKp(tick) = lastKp;
+        curPr(tick) = lastPr;
+        curPm(tick) = lastPm;
+        curT(tick)  = lastT;
+        curVm(tick) = lastVm;
+        curKd(tick) = lastKd;
+
+        tick = tick + 1;
     end
 end

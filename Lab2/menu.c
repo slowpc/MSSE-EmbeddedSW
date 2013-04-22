@@ -4,15 +4,7 @@
 #include <inttypes.h>
 #include <string.h>
 
-void clr_red_toggle_counter( void );
-void clr_green_toggle_counter( void );
-void clr_yellow_toggle_counter( void );
-int get_red_toggle_counter( void );
-int get_green_toggle_counter( void );
-int get_yellow_toggle_counter( void );
-void set_red_period( int new_period );
-void set_green_period( int new_period );
-void set_yellow_period( int new_period );
+void set_logging( int new_value );
 
 #define ECHO2LCD
 
@@ -21,6 +13,9 @@ char receive_buffer[32];
 char menuBuffer[32];
 unsigned char receive_buffer_position;
 char send_buffer[32];
+
+// Used to pass to USB_COMM for serial communication
+char tempBuffer[32];
 
 // A generic function for whenever you want to print to your serial comm window.
 // Provide a string and the length of that string. My serial comm likes "\r\n" at 
@@ -53,6 +48,7 @@ void init_menu() {
 
     memset( menuBuffer, 0, sizeof(menuBuffer) );
     memset( receive_buffer, 0, sizeof(receive_buffer) );
+    memset( tempBuffer, 0, sizeof(tempBuffer) );
 
 	// Start receiving bytes in the ring buffer.
 	serial_receive_ring(USB_COMM, receive_buffer, sizeof(receive_buffer));
@@ -72,29 +68,31 @@ void init_menu() {
 // The menu command is buffered in check_for_new_bytes_received (which calls this function).
 void process_received_string(const char* buffer)
 {
-	// Used to pass to USB_COMM for serial communication
-	char tempBuffer[32];
 	
 	// parse and echo back to serial comm window (and optionally the LCD)
 	char op_char;
     int parsed;
     int new_value;
 
+    memset( tempBuffer, 0, sizeof(tempBuffer) );
+
     cli();
 
-    print_usb("d,Received: ");
-    print_usb(buffer);
+    sprintf(tempBuffer, "d,Received:%s", buffer);
+    print_usb(tempBuffer);
 
-    op_char -= 32*(buffer[0]>='a' && buffer[0]<='z');
+    op_char = buffer[0];
+    op_char -= 32*(op_char>='a' && op_char<='z');
 
     switch (op_char)
     {
         case 'L':
         case 'l':
-            parsed = sscanf(buffer, "%c,%d", op_char, new_value );
-            // TODO: call function to enable/disable logging outputs
+            new_value = buffer[2]-'0';
+            set_logging( new_value );
             break;
         default :
+            print_usb("d,Entered default case for op code\n");
             break;
     }
 
@@ -262,6 +260,10 @@ for (int i=0; i<(received+1); i++)
 #endif
             evaluate = 1;
         }
+        else if (menuBuffer[received] == '\n')
+        {
+            evaluate = 1;
+        }
 
 ++received;
 		
@@ -276,16 +278,7 @@ for (int i=0; i<(received+1); i++)
 			receive_buffer_position++;
 		}
 	}
-#ifdef ECHO2LCD
-		lcd_goto_xy(0,1);
-		print("RX:(");
-		print_long(received);
-		print_character(')');
-		for (int i=0; i<received; i++)
-		{
-			print_character(menuBuffer[i]);
-		}
-#endif
+
 	// If there were keystrokes processed, check if a menu command
 	if ( evaluate ) {
 		// Process buffer: terminate string, process, reset index to beginning of array to receive another command

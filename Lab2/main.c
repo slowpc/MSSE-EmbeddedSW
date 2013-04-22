@@ -40,38 +40,7 @@
 #define PIN_ENCODER_2B                  IO_A1
 
 
-void print_usb_char( char buffer );
-void print_usb( char *buffer );
-void wait_for_sending_to_finish( void );
-/*
-// A generic function for whenever you want to print to your serial comm window.
-// Provide a string and the length of that string. My serial comm likes "\r\n" at
-// the end of each string (be sure to include in length) for proper linefeed.
-void print_usb_char( char buffer ) {
-    char local_buf[2];
-    local_buf[0] = buffer;
-    local_buf[1] = NULL;
-    print_usb( local_buf );
-}
-
-void print_usb( char *buffer )
-{
-    int length;
-    length = strlen( buffer );
-    serial_send( USB_COMM, buffer, length );
-    wait_for_sending_to_finish();
-}
-
-//-------------------------------------------------------------------------------------------
-// wait_for_sending_to_finish:  Waits for the bytes in the send buffer to
-// finish transmitting on USB_COMM.  We must call this before modifying
-// send_buffer or trying to send more bytes, because otherwise we could
-// corrupt an existing transmission.
-void wait_for_sending_to_finish( void )
-{
-	while(!serial_send_buffer_empty(USB_COMM))
-		serial_check();		// USB_COMM port is always in SERIAL_CHECK mode
-}*/
+static int send_outputs;
 
 int main()
 {
@@ -86,6 +55,8 @@ int main()
     unsigned int speed, direction;
 
     Pe = Pr = Pm = Vm = T=  Kp = Kd = 0;
+
+    send_outputs = 1;
 
     clear();
 
@@ -161,11 +132,22 @@ int main()
 
         snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe, (signed int)Pr, (signed int)Pm, (signed int)Vm, (signed int)T_temp, (signed int)Kp, (signed int)Kd );
 
-        print_usb( buffer );
+        if ( send_outputs == 1 )
+        {
+            print_usb( buffer );
+        }
 
-//        serial_check();
-//        check_for_new_bytes_received();
+        serial_check();
+        check_for_new_bytes_received();
 
         delay_ms( LOOP_DELAY_MS );
 	}
+}
+
+void set_logging( int new_value )
+{
+    send_outputs = new_value;
+    print_usb("d,set_logging:");
+    print_usb_char('0'+new_value);
+    print_usb_char('\n');
 }
