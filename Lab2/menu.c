@@ -48,18 +48,18 @@ void init_menu() {
 	
 	// Set the baud rate to 9600 bits per second.  Each byte takes ten bit
 	// times, so you can get at most 960 bytes per second at this speed.
-	serial_set_baud_rate(USB_COMM, 9600);
+	serial_set_baud_rate(USB_COMM, 256000);
 
 	// Start receiving bytes in the ring buffer.
-	serial_receive_ring(USB_COMM, receive_buffer, sizeof(receive_buffer));
+//	serial_receive_ring(USB_COMM, receive_buffer, sizeof(receive_buffer));
 
 	//memcpy_P( send_buffer, PSTR("USB Serial Initialized\r\n"), 24 );
 	//snprintf( printBuffer, 24, "USB Serial Initialized\r\n");
 	//print_usb( printBuffer, 24 );
-	print_usb( "\r\n\nUSB Serial Initialized\r\n" );
+//	print_usb( "\r\n\nUSB Serial Initialized\r\n" );
 
 	//memcpy_P( send_buffer, MENU, MENU_LENGTH );
-	print_usb( MENU );
+//	print_usb( MENU );
 }
 
 //------------------------------------------------------------------------------------------
@@ -67,7 +67,7 @@ void init_menu() {
 // has been received on USB_COMM and processes it accordingly.
 // The menu command is buffered in check_for_new_bytes_received (which calls this function).
 void process_received_string(const char* buffer)
-{
+{/*
 	// Used to pass to USB_COMM for serial communication
 	char tempBuffer[32];
 	
@@ -189,7 +189,7 @@ void process_received_string(const char* buffer)
 		} // end switch(op_char) 
 		
 	print_usb( MENU );
-
+*/
     sei();
 
 } //end menu()
@@ -266,13 +266,7 @@ for (int i=0; i<received; i++)
 		}
 #endif
 	// If there were keystrokes processed, check if a menu command
-	if ( evaluate ) {/*
-		// if only 1 received, it was MOST LIKELY a carriage return. 
-		// Even if it was a single keystroke, it is not a menu command, so ignore it.
-		if ( 1 == received ) {
-			received = 0;
-			return;
-		}*/
+	if ( evaluate ) {
 		// Process buffer: terminate string, process, reset index to beginning of array to receive another command
 		menuBuffer[received] = '\0';
 #ifdef ECHO2LCD
@@ -289,7 +283,7 @@ for (int i=0; i<received; i++)
 		received = 0;
 	}
 }
-	
+
 //-------------------------------------------------------------------------------------------
 // wait_for_sending_to_finish:  Waits for the bytes in the send buffer to
 // finish transmitting on USB_COMM.  We must call this before modifying
