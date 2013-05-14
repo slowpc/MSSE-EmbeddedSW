@@ -49,10 +49,8 @@
 #define PIN_ENCODER_2A                  IO_A0
 #define PIN_ENCODER_2B                  IO_A1
 
-static void get_inputs();
 static void calculate();
-static void put_outputs();
-static void print_outputs();
+static void service_serial();
 
 void set_timer0( void );
 
@@ -87,28 +85,19 @@ int main()
 
     while(1)
     {
-        get_inputs();
         calculate();
-        put_outputs();
-        print_outputs();
+        service_serial();
         delay_ms( LOOP_DELAY_MS );
     }
-}
-
-void get_inputs()
-{
-    // check for new serial input command
-    serial_check();
-    check_for_new_bytes_received();
-
-    // Calc current position
-    Pm_int  = encoders_get_counts_m2();
 }
 
 static void calculate()
 {
     static unsigned int v_iter = 0;
     static unsigned int v_iter_last_pos = 0;
+
+    // Calc current position
+    Pm_int  = encoders_get_counts_m2();
 
     // Calc velocity
     if ( v_iter++ > V_ITER_THRESH )
@@ -146,16 +135,17 @@ static void calculate()
     {
         T_int = MOTOR_SPEED_MAX;
     }
-}
 
-static void put_outputs()
-{
     set_motors( 0, T_int );
 }
 
-static void print_outputs()
+static void service_serial()
 {
     static char buffer[BUFFER_SIZE];
+
+    // check for new serial input command
+    serial_check();
+    check_for_new_bytes_received();
 
     snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe_int, (signed int)Pr_int, (signed int)Pm_int, (signed int)Vm_int, (signed int)T_int, (signed int)(Kp_f*1000), (signed int)(Kd_f*1000) );
 
