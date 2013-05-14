@@ -23,8 +23,8 @@
 
 // Position
 #define DEG_PER_COUNT (360.0f / 64.0f)
-#define POSITION_ERROR_MIN 1
-#define POSITION_ERROR_MAX 64
+#define POSITION_ERROR_DEG_MAX 360.0f
+#define POSITION_ERROR_COUNT_MAX (POSITION_ERROR_DEG_MAX / DEG_PER_COUNT)
 
 // Velocity
 #define V_ITER_THRESH 15
@@ -67,7 +67,6 @@ int main()
     // Initialize the encoders and specify the four input pins, first two are for motor 1, second two are for motor 2
     encoders_init( PIN_ENCODER_1A, PIN_ENCODER_1B, PIN_ENCODER_2A, PIN_ENCODER_2B );
 
-
     while(1)
     {
         get_inputs();
@@ -103,6 +102,16 @@ static void calculate()
     // Calculate the position error
     Pr_int = (int)(Pr_f  / DEG_PER_COUNT);
     Pe_int = Pr_int - Pm_int;
+
+    if ( Pe_int > POSITION_ERROR_COUNT_MAX )
+    {
+        Pe_int = POSITION_ERROR_COUNT_MAX;
+    }
+
+    if ( Pe_int < -POSITION_ERROR_COUNT_MAX )
+    {
+        Pe_int = -POSITION_ERROR_COUNT_MAX;
+    }
 
     // Torque
     float t1_f = Kp_f * Pe_int;
