@@ -17,6 +17,10 @@
 #include "menu.h"
 #include "timer_1284p.h"
 
+// PWM pins
+#define PWM2B	IO_D6
+#define	DIRB	IO_C6
+
 // Timer frequencies
 #define TIMER0_HZ 1000
 
@@ -53,10 +57,14 @@ static void calculate();
 static void service_serial();
 
 void set_timer0( void );
+void set_timer2( void );
+void init_pwm( void );
 
 static int send_outputs;
 static float Pr_f, Kp_f, Kd_f;
 static int Pe_int, Pm_int, Pr_int, Vm_int, T_int;
+
+static int timer2_counter = 100;
 
 int main()
 {
@@ -99,7 +107,7 @@ static void calculate()
     static unsigned int v_iter_last_pos = 0;
 
     unsigned int T_speed;
-    unsigned int T_direction;
+    unsigned int T_reverse;
 
     // Calc current position
     Pm_int  = encoders_get_counts_m2();
@@ -141,18 +149,45 @@ static void calculate()
         T_int = MOTOR_SPEED_MAX;
     }
 
+
+    // Calculate new motor commands
+
     if ( T_int < 0 )
     {
         T_speed = T_int;
-        T_direction = 1;
+        T_reverse = 1;
     }
     else
     {
         T_speed = -T_int;
-        T_direction = 0;
+        T_reverse = 0;
     }
 
-    set_motors( 0, T_int );
+    OCR2B = T_speed;
+
+    if (T_speed == 0)
+    {
+        // Achieve a 0% duty cycle on the PWM pin by driving it low,
+        // disconnecting it from Timer2
+        TCCR2A &= ~(1<<COM2B1);
+    }
+    else
+    {
+        // Achieve a variable duty cycle on the PWM pin using Timer2.
+        TCCR2A |= 1<<COM2B1;
+
+        if (T_reverse)
+        {
+            set_digital_output(DIRB, HIGH);
+        }
+        else
+        {
+            set_digital_output(DIRB, LOW);
+        }
+    }
+
+
+//    set_motors( 0, T_int );
 }
 
 static void service_serial()
@@ -230,6 +265,35 @@ void set_timer0( void )
     timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_B );
     timer_1284p_set_IE( TIMER_1284P_0, TIMER_1284P_IE_A );
     timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_OVERFLOW );
+}
+
+void set_timer2( void )
+{
+    cli();
+
+    timer_1284p_clr_counter( TIMER_1284P_2 );
+
+    //Compare Output mode to clear for OC2B
+    //Waveform generation mode for Fast PWM (Clear Timer on Compare Match mode)
+    //Prescaler of 256
+    timer_1284p_set_COM( TIMER_1284P_2, TIMER_1284P_B, TIMER_1284P_COM_CLEAR);
+    timer_1284p_set_WGM( TIMER_1284P_2, TIMER_1284P_WGM_FAST_PWM );
+    timer_1284p_set_CS( TIMER_1284P_2, TIMER_1284P_CS_PRESCALE_DIV256_TIMER2);
+
+    // Timer period (8-bit register)
+    timer_1284p_set_OCR( TIMER_1284P_1, TIMER_1284P_A, timer2_counter);
+    timer_1284p_set_OCR( TIMER_1284P_1, TIMER_1284P_B, 0);
+
+    // Enable for 0B, enable for 0A, and disable for 0 overflow
+    timer_1284p_set_IE( TIMER_1284P_1, TIMER_1284P_IE_B );
+    timer_1284p_set_IE( TIMER_1284P_1, TIMER_1284P_IE_A );
+    timer_1284p_clr_IE( TIMER_1284P_1, TIMER_1284P_IE_OVERFLOW );
+}
+
+void init_pwm( void )
+{
+    set_digital_output(PWM2B, LOW);
+    set_digital_output(DIRB, LOW);
 }
 
 ISR(TIMER0_COMPA_vect)
