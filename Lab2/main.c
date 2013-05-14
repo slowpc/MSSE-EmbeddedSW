@@ -39,84 +39,99 @@
 #define PIN_ENCODER_2A                  IO_A0
 #define PIN_ENCODER_2B                  IO_A1
 
+static void get_inputs();
+static void calculate();
+static void put_outputs();
 
 static int send_outputs;
 static float Pr_f, Kp_f, Kd_f;
+static int Pe_int, Pm_int, Pr_int, Vm_int, T_int;
 
 int main()
 {
-    int Pe_int, Pm_int, Pr_int, Vm_int, T_int;
-    char buffer[BUFFER_SIZE];
-
-    unsigned int v_iter = 0;
-    unsigned int v_iter_last_pos = 0;
-    
-    unsigned int speed, direction;
-
     Pe_int = Pm_int = Pr_int = Vm_int = T_int = 0;
-    Pr_f = Kp_f = Kd_f = 0.0f;
 
-    send_outputs = 1;
+    Pr_f = 0.0f, Kp_f = 4.3f, Kd_f = -4.85f; // Dummy values until new ones are set at runtime
+
+    send_outputs = 1; // Default to send outputs
 
     clear();
 
-	play_from_program_space(PSTR(">g32>>c32"));  // Play welcoming notes.
+    play_from_program_space(PSTR(">g32>>c32"));  // Play welcoming notes.
 
     serial_set_baud_rate(USB_COMM, USB_BAUD_RATE);
     init_menu();
-    
+
     clear();
 
     // Initialize the encoders and specify the four input pins, first two are for motor 1, second two are for motor 2
     encoders_init( PIN_ENCODER_1A, PIN_ENCODER_1B, PIN_ENCODER_2A, PIN_ENCODER_2B );
 
-    // Dummy values for the time being
-    Pr_f = 0.0f;
-    Kp_f = 4.3f;
-    Kd_f = -4.85f;
 
-	while(1)
-	{
-        // Calc current position
-        Pm_int  = encoders_get_counts_m2();
-
-        // Calc velocity
-        if ( v_iter++ > V_ITER_THRESH )
-        {
-            v_iter = 0;
-            Vm_int = Pm_int - v_iter_last_pos;
-            v_iter_last_pos = Pm_int;
-        }
-
-        // Calculate the position error
-        Pr_int = (int)(Pr_f  / DEG_PER_COUNT);
-        Pe_int = Pr_int - Pm_int;
-
-        // Torque
-        float t1_f = Kp_f * Pe_int;
-        float t2_f = Kd_f * Vm_int;
-        T_int = (int)(t1_f - t2_f);
-
-        if ( T_int < -MOTOR_SPEED_MAX )
-            T_int = -MOTOR_SPEED_MAX;
-
-        if ( T_int > MOTOR_SPEED_MAX )
-            T_int = MOTOR_SPEED_MAX;
-
-        set_motors( 0, T_int );
-
-        snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe_int, (signed int)Pr_int, (signed int)Pm_int, (signed int)Vm_int, (signed int)T_int, (signed int)(Kp_f*1000), (signed int)(Kd_f*1000) );
-
-        if ( send_outputs == 1 )
-        {
-            print_usb( buffer );
-        }
-
-        serial_check();
-        check_for_new_bytes_received();
-
+    while(1)
+    {
+        get_inputs();
+        calculate();
+        put_outputs();
         delay_ms( LOOP_DELAY_MS );
-	}
+    }
+}
+
+void get_inputs()
+{
+    // check for new serial input command
+    serial_check();
+    check_for_new_bytes_received();
+
+    // Calc current position
+    Pm_int  = encoders_get_counts_m2();
+}
+
+static void calculate()
+{
+    static unsigned int v_iter = 0;
+    static unsigned int v_iter_last_pos = 0;
+
+    // Calc velocity
+    if ( v_iter++ > V_ITER_THRESH )
+    {
+        v_iter = 0;
+        Vm_int = Pm_int - v_iter_last_pos;
+        v_iter_last_pos = Pm_int;
+    }
+
+    // Calculate the position error
+    Pr_int = (int)(Pr_f  / DEG_PER_COUNT);
+    Pe_int = Pr_int - Pm_int;
+
+    // Torque
+    float t1_f = Kp_f * Pe_int;
+    float t2_f = Kd_f * Vm_int;
+    T_int = (int)(t1_f - t2_f);
+
+    if ( T_int < -MOTOR_SPEED_MAX )
+    {
+        T_int = -MOTOR_SPEED_MAX;
+    }
+
+    if ( T_int > MOTOR_SPEED_MAX )
+    {
+        T_int = MOTOR_SPEED_MAX;
+    }    
+}
+
+static void put_outputs()
+{
+    static char buffer[BUFFER_SIZE];
+
+    set_motors( 0, T_int );
+
+    snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe_int, (signed int)Pr_int, (signed int)Pm_int, (signed int)Vm_int, (signed int)T_int, (signed int)(Kp_f*1000), (signed int)(Kd_f*1000) );
+
+    if ( send_outputs == 1 )
+    {
+        print_usb( buffer );
+    }
 }
 
 void set_logging( int new_value )
