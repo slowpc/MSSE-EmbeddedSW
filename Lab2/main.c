@@ -221,22 +221,10 @@ void set_timer0( void )
 ISR(TIMER0_COMPA_vect)
 {
     char cSREG;
-    static int task0_tick = 0;
-    static int red_value = 0;
 
     cSREG = SREG;
 
-    task0_tick++;
-
-    // If task is enabled and reached its 'release' time
-    if ( task0_tick >= 1 )
-    {
-        calculate();
-
-        task0_tick = 0;
-        red_led(red_value);
-        red_value ^= 0x1;
-    }
+    calculate();
 
     SREG = cSREG;
 }
