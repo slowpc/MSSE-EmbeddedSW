@@ -48,6 +48,8 @@ void timer_1284p_set_COM(TIMER_1284P_E timer, TIMER_1284P_AB_E ab, TIMER_1284P_C
             TCCR1A |= reg_val;
             break;
         case TIMER_1284P_2:
+            TCCR2A &= ~mask;
+            TCCR2A |= reg_val;
             break;
         case TIMER_1284P_3:
             TCCR3A &= ~mask;
@@ -117,6 +119,33 @@ void timer_1284p_set_WGM(TIMER_1284P_E timer, TIMER_1284P_WGM_E wgm)
             TCCR1B |= reg_val_b;
             break;
         case TIMER_1284P_2:
+            switch ( wgm )
+            {
+                case TIMER_1284P_WGM_NORMAL:
+                    reg_val_a = (0<<WGM20) | (0<<WGM21);
+                    reg_val_b = (0<<WGM22);
+                    break;
+                case TIMER_1284P_WGM_CTC:
+                    reg_val_a = (0<<WGM20) | (1<<WGM21);
+                    reg_val_b = (0<<WGM22);
+                    break;
+                case TIMER_1284P_WGM_FAST_PWM:
+                    reg_val_a = (1<<WGM20) | (1<<WGM21);
+                    reg_val_b = (1<<WGM22);
+                    break;
+                default:
+                    reg_val_a = 0;
+                    reg_val_b = 0;
+                    break;
+            }
+
+            mask_a = (1<<WGM20) | (1<<WGM21);
+            mask_b = (1<<WGM22);
+
+            TCCR2A &= ~mask_a;
+            TCCR2A |= reg_val_a;
+            TCCR2B &= ~mask_b;
+            TCCR2B |= reg_val_b;
             break;
         case TIMER_1284P_3:
             switch ( wgm )
@@ -208,7 +237,17 @@ void timer_1284p_set_OCR(TIMER_1284P_E timer, TIMER_1284P_AB_E ab, int duration_
             }
             break;
         case TIMER_1284P_2:
-            break;
+            switch ( ab )
+            {
+                case TIMER_1284P_A:
+                    OCR2A = duration_counts;
+                    break;
+                case TIMER_1284P_B:
+                    OCR2B = duration_counts;
+                    break;
+                default:
+                    break;
+            }
         case TIMER_1284P_3:
             switch ( ab )
             {
