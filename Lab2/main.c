@@ -98,6 +98,9 @@ static void calculate()
     static unsigned int v_iter = 0;
     static unsigned int v_iter_last_pos = 0;
 
+    unsigned int T_speed;
+    unsigned int T_direction;
+
     // Calc current position
     Pm_int  = encoders_get_counts_m2();
 
@@ -136,6 +139,17 @@ static void calculate()
     if ( T_int > MOTOR_SPEED_MAX )
     {
         T_int = MOTOR_SPEED_MAX;
+    }
+
+    if ( T_int < 0 )
+    {
+        T_speed = T_int;
+        T_direction = 1;
+    }
+    else
+    {
+        T_speed = -T_int;
+        T_direction = 0;
     }
 
     set_motors( 0, T_int );
