@@ -87,6 +87,7 @@ int main()
     encoders_init( PIN_ENCODER_1A, PIN_ENCODER_1B, PIN_ENCODER_2A, PIN_ENCODER_2B );
 
     set_timer0();
+    init_pwm();
 
     // Calculate first values
     calculate();
@@ -149,17 +150,17 @@ static void calculate()
         T_int = MOTOR_SPEED_MAX;
     }
 
+    // Set new motor commands
 
-    // Calculate new motor commands
-
+/*
     if ( T_int < 0 )
     {
-        T_speed = T_int;
+        T_speed = -T_int;
         T_reverse = 1;
     }
     else
     {
-        T_speed = -T_int;
+        T_speed = T_int;
         T_reverse = 0;
     }
 
@@ -185,9 +186,9 @@ static void calculate()
             set_digital_output(DIRB, LOW);
         }
     }
+*/
+    set_motors( 0, T_int );
 
-
-//    set_motors( 0, T_int );
 }
 
 static void service_serial()
@@ -291,9 +292,11 @@ void set_timer2( void )
 }
 
 void init_pwm( void )
-{
-    set_digital_output(PWM2B, LOW);
-    set_digital_output(DIRB, LOW);
+{/*
+    DDRC = PORTC6;
+    DDRD = PORTD6;
+    PORTD &= ~(1<<PWM2B);
+    PORTC &= ~(1<<DIRB);*/
 }
 
 ISR(TIMER0_COMPA_vect)
