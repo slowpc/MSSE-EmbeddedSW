@@ -37,7 +37,7 @@
 #define POSITION_ERROR_COUNT_MAX (POSITION_ERROR_DEG_MAX / DEG_PER_COUNT)
 
 // Velocity
-#define V_ITER_THRESH 15
+#define V_ITER_THRESH 100
 
 // Motor
 #define MOTOR_SPEED_MIN                 25
@@ -80,12 +80,14 @@ int main()
 
     set_timer0();
 
+    // Calculate first values
+    calculate();
+
     // Global interrupt enable
     sei();
 
     while(1)
     {
-        calculate();
         service_serial();
         delay_ms( LOOP_DELAY_MS );
     }
@@ -227,8 +229,10 @@ ISR(TIMER0_COMPA_vect)
     task0_tick++;
 
     // If task is enabled and reached its 'release' time
-    if ( task0_tick >= 1000 )
+    if ( task0_tick >= 1 )
     {
+        calculate();
+
         task0_tick = 0;
         red_led(red_value);
         red_value ^= 0x1;
