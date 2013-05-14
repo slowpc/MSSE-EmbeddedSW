@@ -15,6 +15,16 @@
 #include <string.h>
 
 #include "menu.h"
+#include "timer_1284p.h"
+
+// Timer frequencies
+#define TIMER0_HZ 1000
+
+// Timer prescalers
+#define TIMER0_PRESCALER 256
+
+// CPU Definitions
+#define CPU_FREQ 20000000
 
 #define BUFFER_SIZE 64
 #define LOOP_DELAY_MS 9
@@ -43,6 +53,8 @@ static void get_inputs();
 static void calculate();
 static void put_outputs();
 
+void set_timer0( void );
+
 static int send_outputs;
 static float Pr_f, Kp_f, Kd_f;
 static int Pe_int, Pm_int, Pr_int, Vm_int, T_int;
@@ -66,6 +78,11 @@ int main()
 
     // Initialize the encoders and specify the four input pins, first two are for motor 1, second two are for motor 2
     encoders_init( PIN_ENCODER_1A, PIN_ENCODER_1B, PIN_ENCODER_2A, PIN_ENCODER_2B );
+
+    set_timer0();
+
+    // Global interrupt enable
+    sei();
 
     while(1)
     {
@@ -161,4 +178,66 @@ void set_Kp( float new_Kp )
 void set_Kd( float new_Kd )
 {
     Kd_f = new_Kd;
+}
+
+
+
+void set_timer0( void )
+{
+    cli();
+
+    /*
+    ** freq_interrupt = (CPU_freq / 1 second) * (1 count / prescaler ticks) * (1 interrput / timer_period counts)
+    **
+    ** CPU_freq is 20MHz.
+    ** We want the frequency of the interrupt to be 1 ms (1000Hz) and need to find values of prescaler and timer_period (TOP, aka OCRnA)
+    **
+    ** hz = (20E6 / 1) * (1 / prescaler) * (1 / timer_period)
+    ** timer_period = 20E6 / (hz * prescaler )
+    ** prescaler    = 20E6 / (hz * timer_period )
+    **
+    ** prescaler = 256
+    ** timer_period = 78
+    **
+    ** freq_interrupt [actual] = 20M / 256 / 78 = 1001.603Hz
+    */
+
+    timer_1284p_clr_counter( TIMER_1284P_0 );
+
+    //Compare Output mode to toggle for OC0A
+    //Waveform generation mode for CTC (Clear Timer on Compare Match mode)
+    //Prescaler of 256
+    timer_1284p_set_COM( TIMER_1284P_0, TIMER_1284P_A, TIMER_1284P_COM_NO_COMPARE);
+    timer_1284p_set_WGM( TIMER_1284P_0, TIMER_1284P_WGM_CTC );
+    timer_1284p_set_CS( TIMER_1284P_0, TIMER_1284P_CS_PRESCALE_DIV256);
+
+#define TIMER0_COUNTER ( (int) ((float)CPU_FREQ/(float)TIMER0_HZ/(float)TIMER0_PRESCALER) )
+    // Timer period of 78 (8-bit register)
+    timer_1284p_set_OCR( TIMER_1284P_0, TIMER_1284P_A, TIMER0_COUNTER - 1 );
+
+    // Disable interrupts for 0B, enable for 0A, and disable for 0 overflow
+    timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_B );
+    timer_1284p_set_IE( TIMER_1284P_0, TIMER_1284P_IE_A );
+    timer_1284p_clr_IE( TIMER_1284P_0, TIMER_1284P_IE_OVERFLOW );
+}
+
+ISR(TIMER0_COMPA_vect)
+{
+    char cSREG;
+    static int task0_tick = 0;
+    static int red_value = 0;
+
+    cSREG = SREG;
+
+    task0_tick++;
+
+    // If task is enabled and reached its 'release' time
+    if ( task0_tick >= 1000 )
+    {
+        task0_tick = 0;
+        red_led(red_value);
+        red_value ^= 0x1;
+    }
+
+    SREG = cSREG;
 }
