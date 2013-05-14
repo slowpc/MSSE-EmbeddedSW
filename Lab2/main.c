@@ -52,6 +52,7 @@
 static void get_inputs();
 static void calculate();
 static void put_outputs();
+static void print_outputs();
 
 void set_timer0( void );
 
@@ -89,6 +90,7 @@ int main()
         get_inputs();
         calculate();
         put_outputs();
+        print_outputs();
         delay_ms( LOOP_DELAY_MS );
     }
 }
@@ -143,14 +145,17 @@ static void calculate()
     if ( T_int > MOTOR_SPEED_MAX )
     {
         T_int = MOTOR_SPEED_MAX;
-    }    
+    }
 }
 
 static void put_outputs()
 {
-    static char buffer[BUFFER_SIZE];
-
     set_motors( 0, T_int );
+}
+
+static void print_outputs()
+{
+    static char buffer[BUFFER_SIZE];
 
     snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe_int, (signed int)Pr_int, (signed int)Pm_int, (signed int)Vm_int, (signed int)T_int, (signed int)(Kp_f*1000), (signed int)(Kd_f*1000) );
 
