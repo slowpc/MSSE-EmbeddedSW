@@ -64,6 +64,8 @@ int main()
 
     serial_set_baud_rate(USB_COMM, USB_BAUD_RATE);
     init_menu();
+    
+    clear();
 
     // Initialize the encoders and specify the four input pins, first two are for motor 1, second two are for motor 2
     encoders_init( PIN_ENCODER_1A, PIN_ENCODER_1B, PIN_ENCODER_2A, PIN_ENCODER_2B );
@@ -75,7 +77,6 @@ int main()
 
 	while(1)
 	{
-clear();
         // Calc current position
         Pm_int  = encoders_get_counts_m2();
 
@@ -91,12 +92,6 @@ clear();
         Pr_int = (int)(Pr_f  / DEG_PER_COUNT);
         Pe_int = Pr_int - Pm_int;
 
-        if ( Pe > POSITION_ERROR_MAX )
-            Pe = POSITION_ERROR_MAX;
-
-        if ( Pe < -POSITION_ERROR_MAX )
-            Pe = -POSITION_ERROR_MAX;
-
         // Torque
         float t1_f = Kp_f * Pe_int;
         float t2_f = Kd_f * Vm_int;
@@ -107,31 +102,8 @@ clear();
 
         if ( T_int > MOTOR_SPEED_MAX )
             T_int = MOTOR_SPEED_MAX;
-/*
-        if ( T < 0 )
-        {
-            speed = -T;
-            direction = 0;
-        }
-        else
-        {
-            speed = T;
-            direction = 1;
-        }
-    signed int Pe_abs = (Pe > 0) ? Pe : -Pe ;
-        // Force the motor to the minimum amount if it hasn't reached the goal yet
-        if (Pe_abs > POSITION_ERROR_MIN && speed < MOTOR_SPEED_MIN )
-            speed = MOTOR_SPEED_MIN;
 
-        if (Pe_abs <= POSITION_ERROR_MIN)
-            speed = 0;
-
-        // TODO: Replace with setting registers
-//        signed int T_temp;
-//        T_temp = ( direction == 1 ) ? speed : -speed;
-//        set_motors( 0, T_temp );*/
-
-set_motors( 0, T_int );
+        set_motors( 0, T_int );
 
         snprintf( buffer, BUFFER_SIZE, "v,%d,%d,%d,%d,%d,%d,%d\r\n", (signed int)Pe_int, (signed int)Pr_int, (signed int)Pm_int, (signed int)Vm_int, (signed int)T_int, (signed int)(Kp_f*1000), (signed int)(Kd_f*1000) );
 
