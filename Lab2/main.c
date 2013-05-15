@@ -37,15 +37,18 @@
 
 // Position
 #define DEG_PER_COUNT (360.0f / 64.0f)
-#define POSITION_ERROR_DEG_MAX 360.0f
+#define POSITION_ERROR_DEG_MAX 540.0f
 #define POSITION_ERROR_COUNT_MAX (POSITION_ERROR_DEG_MAX / DEG_PER_COUNT)
+#define POSITION_ERROR_COUNT_MIN 1
+
+#define NUM_MS_PER_CALC 200
 
 // Velocity
-#define V_ITER_THRESH 100
+#define V_ITER_THRESH (200/NUM_MS_PER_CALC)
 
 // Motor
 #define MOTOR_SPEED_MIN                 25
-#define MOTOR_SPEED_MAX                 175
+#define MOTOR_SPEED_MAX                 150
 
 // Encoder pin mapping
 #define PIN_ENCODER_1A                  IO_A2
@@ -125,6 +128,7 @@ static void calculate()
     Pr_int = (int)(Pr_f  / DEG_PER_COUNT);
     Pe_int = Pr_int - Pm_int;
 
+    // Clamp maximum error
     if ( Pe_int > POSITION_ERROR_COUNT_MAX )
     {
         Pe_int = POSITION_ERROR_COUNT_MAX;
@@ -140,6 +144,17 @@ static void calculate()
     float t2_f = Kd_f * Vm_int;
     T_int = (int)(t1_f - t2_f);
 
+/*
+    // Clamp minimum speed
+    if ( ( T_int > 0 ) && ( T_int < MOTOR_SPEED_MIN ) )
+    {
+        T_int = MOTOR_SPEED_MIN;
+    }
+    else if ( ( T_int < 0 ) && ( T_int > -MOTOR_SPEED_MIN ) )
+    {
+        T_int = -MOTOR_SPEED_MIN;
+    }
+*/
     if ( T_int < -MOTOR_SPEED_MAX )
     {
         T_int = -MOTOR_SPEED_MAX;
@@ -305,7 +320,14 @@ ISR(TIMER0_COMPA_vect)
 
     cSREG = SREG;
 
-    calculate();
+    static int i = 0;
+
+    i++;
+    if ( i >= NUM_MS_PER_CALC )
+    {
+        i = 0;
+        calculate();
+    }
 
     SREG = cSREG;
 }
